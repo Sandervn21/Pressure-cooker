@@ -415,8 +415,38 @@ data_clean <- data_clean %>%
     by = "Name"
   ) %>%
   relocate(kindergarten_months, .after = Date_of_birth)
+scores_by_vak <- data_observatie %>%
+  group_by(Leerling, Vak) %>%
+  summarise(
+    mean_score = if (all(is.na(Score))) NA_real_ else mean(Score, na.rm = TRUE),
+    n_scores = sum(!is.na(Score)),
+    .groups = "drop"
+  ) %>%
+  mutate(level = "Vak")
 
-View(data_clean)
-View(data_CLASS_clean)
-View(average_scores)
-View(average_grades)
+scores_by_domein <- data_observatie %>%
+  group_by(Leerling, Vak, Domein) %>%
+  summarise(
+    mean_score = if (all(is.na(Score))) NA_real_ else mean(Score, na.rm = TRUE),
+    n_scores = sum(!is.na(Score)),
+    .groups = "drop"
+  ) %>%
+  mutate(level = "Domein")
+
+scores_by_leerpadcode <- data_observatie %>%
+  group_by(Leerling, Vak, Domein, Leerpadcode) %>%
+  summarise(
+    mean_score = if (all(is.na(Score))) NA_real_ else mean(Score, na.rm = TRUE),
+    n_scores = sum(!is.na(Score)),
+    .groups = "drop"
+  ) %>%
+  mutate(level = "Leerpadcode")
+
+learning_goals <- bind_rows(
+  scores_by_vak,
+  scores_by_domein,
+  scores_by_leerpadcode
+) %>%
+  mutate(level = factor(level, levels = c("Vak", "Domein", "Leerpadcode"))) %>%
+  select(Leerling, level, Vak, Domein, Leerpadcode, mean_score, n_scores) %>%
+  arrange(Leerling, Vak, level, Domein, Leerpadcode)
