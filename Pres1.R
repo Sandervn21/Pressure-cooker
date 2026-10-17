@@ -34,204 +34,51 @@ activities_per_pupil <- Extracurricular |>
   ) |>
   arrange(desc(n_activities))
 
-print(activities_per_pupil)
-
-
-grade3_data <- Cito_UvA_EN |>
-  filter(Grade == "Grade 3") |>
-  left_join(
-    activities_per_pupil,
-    by = c("Name" = "Student"),
-    relationship = "many-to-one"
-  )
-
-
-# Extract unique name–ID pairs
-student_lookup <- Extracurricular |>
-  select(Student, `Student ID`) |>
-  filter(!is.na(Student), !is.na(`Student ID`)) |>
-  distinct()
-
-# Add IDs to the other dataset by matching names
-Cito_with_ID <- Cito_UvA_EN |>
-  left_join(
-    student_lookup,
-    by = c("Name" = "Student"),
-    relationship = "many-to-one"
-  )
-
-# Inspect the matched names and IDs
-Cito_with_ID |>
-  select(Name, `Student ID`) |>
-  distinct() |>
-  print(n = 20)
-
-# Check names that did not match
-Cito_with_ID |>
-  filter(is.na(`Student ID`)) |>
-  distinct(Name) |>
-  print(n = Inf)
-
-activities_per_pupil <- Extracurricular |>
-  filter(!is.na(`Student`)) |>
-  group_by(`Student`) |>
-  summarise(
-    n_activities = n_distinct(Lesson, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-grade3_data <- Cito_with_ID |>
-  filter(Grade == "Grade 3") |>
-  left_join(
-    activities_per_pupil,
-    by = c("Name" = "Student"),
-    relationship = "many-to-one"
-  )
-
-plot_data <- grade3_data |>
-  filter(!is.na(n_activities), !is.na(Score)) |>
-  mutate(
-    activity_count = factor(
-      n_activities,
-      levels = sort(unique(n_activities))
-    )
-  )
-
-ggplot(plot_data, aes(x = activity_count, y = Score)) +
-  geom_boxplot(
-    width = 0.5,
-    fill = "#DBEAFE",
-    colour = "#64748B",
-    alpha = 0.7,
-    outlier.shape = NA
-  ) +
-  geom_point(
-    position = position_jitter(
-      width = 0.15,
-      height = 0,
-      seed = 123
-    ),
-    colour = "#2563EB",
-    alpha = 0.45,
-    size = 2
-  ) +
-  stat_summary(
-    fun = median,
-    geom = "point",
-    shape = 18,
-    size = 4,
-    colour = "#D97706"
-  ) +
-  labs(
-    title = "Do Grade 3 scores vary with extracurricular participation?",
-    subtitle = "Score distributions by number of different activities",
-    x = "Number of different extracurricular activities",
-    y = "Grade 3 score",
-    caption = paste(
-      "Blue points = individual records; orange diamonds = medians.",
-      "Boxes show the middle 50% of scores."
-    )
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    plot.title = element_text(face = "bold"),
-    plot.caption = element_text(hjust = 0)
-  )
-
-ggplot(plot_data, aes(x = n_activities, y = "Performance band")) +
-  geom_point(
-    position = position_jitter(
-      width = 0.15,
-      height = 0,
-      seed = 123
-    ),
-    colour = "#2563EB",
-    alpha = 0.5,
-    size = 2.5
-  ) +
-  scale_x_continuous(
-    breaks = sort(unique(plot_data$n_activities))
-  ) +
-  labs(
-    title = "Extracurricular participation and Grade 3 scores",
-    x = "Number of different extracurricular activities",
-    y = "Grade 3 score",
-    caption = "Points are shifted slightly horizontally to show overlapping records."
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    plot.title = element_text(face = "bold"),
-    plot.caption = element_text(hjust = 0)
-  )
-
-a1 <- average_grades |>
-  left_join(activities_per_pupil,
-            by=c("Name"="Student"),
-            relationship="many-to-one"
-  )
-
-a1 |>
-  ggplot(aes(x=n_activities, y=mean_grade)) +
-  geom_point()
-
-
 #######
 
-make_key <- function(x) str_to_lower(str_squish(x))
-
-# Extracurricular activities (different lessons per pupil)
-activities_per_pupil <- Extracurricular |>
-  mutate(name_key = make_key(Student)) |>
+dev_per_pupil <- average_scores |>
+  mutate(name_key = make_key(Leerling)) |>
   filter(!is.na(name_key), name_key != "") |>
+  group_by(Leerpadcode) |>
+  mutate(z = as.numeric(scale(mean_score))) |>
+  ungroup() |>
   group_by(name_key) |>
-  summarise(n_activities = n_distinct(Lesson, na.rm = TRUE), .groups = "drop")
+  summarise(development = mean(z, na.rm = TRUE),
+            n_goals = sum(!is.na(z)),
+            .groups = "drop") |>
+  filter(!is.nan(development))
 
-# Achievement per subject (several rows per pupil)
-cito_long <- average_grades |>
+q1_data <- data_clean |>
   mutate(name_key = make_key(Name)) |>
-  filter(!is.na(name_key), name_key != "") |>
-  select(name_key, Test, mean_grade, n_scores)
-
-# Step 1: pupil-level data (one row per pupil)
-pupil_data <- data_clean |>
-  mutate(name_key = make_key(Name)) |>
-  left_join(activities_per_pupil, by = "name_key", relationship = "one-to-one")
-
-# Step 2: add the subjects (one row per pupil per subject)
-model_long <- pupil_data |>
-  inner_join(cito_long, by = "name_key", relationship = "one-to-many") |>
-  mutate(intervention = factor(n_interventions)) |>
-  group_by(Test) |>
+  select(name_key, kindergarten_months) |>
+  left_join(activities_per_pupil, by = "name_key", relationship = "one-to-one") |>
+  inner_join(dev_per_pupil, by = "name_key", relationship = "one-to-one") |>
   mutate(
     kg_c  = kindergarten_months - mean(kindergarten_months, na.rm = TRUE),
     act_c = n_activities - mean(n_activities, na.rm = TRUE)
-  ) |>
-  ungroup()
+  )
 
-models <- model_long |>
-  split(~ Test) |>
-  map(~ lm(mean_grade ~ kg_c * act_c + intervention, data = .x))
+# Pupils at each stage
+tibble(
+  stage = c("data_clean", "with learning-goal scores", "complete cases in model"),
+  n = c(n_distinct(data_clean$Name),
+        nrow(q1_data),
+        nrow(drop_na(q1_data, kg_c, act_c, development)))
+)
 
-# Pupils actually used in each model
-map_int(models, nobs)
+m_q1 <- lm(development ~ kg_c * act_c, data = q1_data)
 
-# Coefficients, standard errors, p-values and 95% CIs
-results <- map_dfr(models, broom::tidy, conf.int = TRUE, .id = "Test") |>
-  select(Test, term, estimate, std.error, p.value, conf.low, conf.high)
+summary(m_q1)
+confint(m_q1)
+nobs(m_q1)
 
-print(results, n = Inf)
+ggplot(q1_data, aes(kindergarten_months, development, colour = n_activities)) +
+  geom_point(size = 2.5) +
+  geom_smooth(aes(group = 1), method = "lm", colour = "black") +
+  scale_colour_viridis_c(name = "Number of\nactivities") +
+  labs(x = "Months in kindergarten", y = "Development (average z-score)") +
+  theme_minimal(base_size = 13)
 
-# Overall fit
-map_dfr(models, broom::glance, .id = "Test") |>
-  select(Test, r.squared, adj.r.squared, sigma, statistic, p.value, nobs)
 
-# Residuals vs fitted and Q-Q plot, per subject
-par(mfrow = c(2, 2))
-plot(models[[1]])
-par(mfrow = c(1, 1))
 
 
