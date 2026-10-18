@@ -1,41 +1,19 @@
-# Test test
+# Q1: is the relationship between time in kindergarten and development
+# moderated by extracurricular activities?
+# Needs R/cleanup.R to have been sourced.
 
-library(tidyverse)
-
-# ---------------------------------------------------------
-# 1. Inspect the original dataset
-# ---------------------------------------------------------
-
-# Show column names, types, and example values
-glimpse(Extracurricular)
-
-# Display the first 10 rows
-Extracurricular |>
-  slice_head(n = 10)
-
-# Count rows and columns
-dim(Extracurricular)
-
-# Count missing values in each column
-Extracurricular |>
-  summarise(across(everything(), ~ sum(is.na(.x))))
-
-# Inspect lesson types and their frequencies
-groups <- Extracurricular |>
-  count(Lesson, sort = TRUE)
-
-
-activities_per_pupil <- Extracurricular |>
+# Number of distinct extracurricular lessons per pupil
+activities_per_pupil <- data_extra |>
   filter(!is.na(`Student`)) |>
   group_by(`Student`) |>
   summarise(
     n_activities = n_distinct(Lesson, na.rm = TRUE),
     .groups = "drop"
   ) |>
+  mutate(name_key = make_key(Student)) |>
   arrange(desc(n_activities))
 
-#######
-
+# Development = learning-goal scores z-scored per goal, averaged per pupil
 dev_per_pupil <- average_scores |>
   mutate(name_key = make_key(Leerling)) |>
   filter(!is.na(name_key), name_key != "") |>
@@ -51,7 +29,8 @@ dev_per_pupil <- average_scores |>
 q1_data <- data_clean |>
   mutate(name_key = make_key(Name)) |>
   select(name_key, kindergarten_months) |>
-  left_join(activities_per_pupil, by = "name_key", relationship = "one-to-one") |>
+  left_join(select(activities_per_pupil, name_key, n_activities),
+            by = "name_key", relationship = "one-to-one") |>
   inner_join(dev_per_pupil, by = "name_key", relationship = "one-to-one") |>
   mutate(
     kg_c  = kindergarten_months - mean(kindergarten_months, na.rm = TRUE),
@@ -59,7 +38,7 @@ q1_data <- data_clean |>
   )
 
 # Pupils at each stage
-tibble(
+q1_sample_sizes <- tibble(
   stage = c("data_clean", "with learning-goal scores", "complete cases in model"),
   n = c(n_distinct(data_clean$Name),
         nrow(q1_data),
@@ -68,17 +47,9 @@ tibble(
 
 m_q1 <- lm(development ~ kg_c * act_c, data = q1_data)
 
-summary(m_q1)
-confint(m_q1)
-nobs(m_q1)
-
-ggplot(q1_data, aes(kindergarten_months, development, colour = n_activities)) +
+q1_plot <- ggplot(q1_data, aes(kindergarten_months, development, colour = n_activities)) +
   geom_point(size = 2.5) +
-  geom_smooth(aes(group = 1), method = "lm", colour = "black") +
+  geom_smooth(aes(group = 1), method = "lm", formula = y ~ x, colour = "black") +
   scale_colour_viridis_c(name = "Number of\nactivities") +
   labs(x = "Months in kindergarten", y = "Development (average z-score)") +
   theme_minimal(base_size = 13)
-
-
-
-
