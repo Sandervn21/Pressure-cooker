@@ -1,0 +1,14 @@
+# Pupil data is private: never commit it
+data/*
+!data/.gitkeep
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Quarto output
+/.quarto/
+analysis.html
+analysis_files/
