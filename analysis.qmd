@@ -1,0 +1,156 @@
+---
+title: "Het Epos: early years and later results"
+subtitle: "Behavioral Data Science Toolbox, group 4"
+author: "Sander van Nieuwenhuijzen, Teodora Costache, Mariia Steeghs-Turchina"
+format:
+  html:
+    toc: true
+    code-fold: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+All computation lives in `R/`; this notebook runs the scripts in order and shows their results.
+The raw Excel exports must be in `data/` (see the README).
+
+```{r}
+#| label: setup
+source("R/setup.R")
+source("R/load_data.R")
+source("R/cleanup.R")
+source("R/q1_model.R")
+source("R/q2_analysis.R")
+
+show_table <- function(x, digits = 3) knitr::kable(x, digits = digits)
+```
+
+# Data preparation
+
+CITO scores that could not be converted to numbers:
+
+```{r}
+show_table(failed_conversion)
+```
+
+CLASS observations whose date could not be parsed or does not match the `Quarter` column:
+
+```{r}
+show_table(class_date_issues)
+```
+
+## Learning-goal scores
+
+Summary per learning-goal code:
+
+```{r}
+show_table(score_summary)
+```
+
+## CITO scores
+
+```{r}
+show_table(grade_summary)
+```
+
+## Extracurricular activities
+
+```{r}
+data_extra |>
+  count(Lesson, sort = TRUE) |>
+  show_table()
+```
+
+# Q1: time in kindergarten × extracurricular activities
+
+Development is the average z-score across learning goals per pupil.
+Both predictors are mean-centred, so each main effect is the effect at the average of the other predictor.
+
+```{r}
+show_table(q1_sample_sizes)
+```
+
+```{r}
+summary(m_q1)
+confint(m_q1)
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+q1_plot
+```
+
+# Q2: learning goals and CITO results
+
+## Correlations
+
+Correlations between the 15 learning-goal codes the school named and CITO scores (BH-adjusted):
+
+```{r}
+#| fig-width: 9
+#| fig-height: 8
+correlation_plot
+```
+
+Per Vak:
+
+```{r}
+#| fig-width: 9
+#| fig-height: 7
+correlation_plot_vak
+```
+
+Per Domein, only |r| > 0.7:
+
+```{r}
+show_table(strong_correlations_domein)
+```
+
+## Which Vakken predict group 3 CITO? (elastic net)
+
+```{r}
+show_table(model_status)
+show_table(rmse_results)
+```
+
+```{r}
+#| fig-width: 11
+#| fig-height: 7
+vak_plot
+```
+
+```{r}
+vak_relevance |>
+  filter(model == "readiness") |>
+  show_table()
+```
+
+Missing predictors per test:
+
+```{r}
+show_table(predictor_missingness)
+```
+
+## Baseline, time, readiness and context models
+
+Uses the two most-selected Vakken per test:
+
+```{r}
+selected_vakken |>
+  select(Test, Vak) |>
+  show_table()
+show_table(model_status_top2)
+show_table(rmse_results_top2)
+```
+
+```{r}
+#| fig-width: 11
+#| fig-height: 6
+performance_plot
+```
+
+```{r}
+show_table(coefficient_results_top2)
+```
