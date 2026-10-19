@@ -21,6 +21,7 @@ source("R/setup.R")
 source("R/load_data.R")
 source("R/cleanup.R")
 source("R/q1_model.R")
+source("R/q1_robustness.R")
 source("R/q2_analysis.R")
 
 show_table <- function(x, digits = 3) knitr::kable(x, digits = digits)
@@ -80,6 +81,30 @@ confint(m_q1)
 #| fig-width: 8
 #| fig-height: 5
 q1_plot
+```
+
+## Robustness of the activities effect
+
+The model above changes one thing at a time, from the reported specification towards
+pupils who reached group 3, their actual time until group 3, and the transition goals
+achieved before group 3. If the activities coefficient changes sign or vanishes at a
+step, that choice drives the result. `b_per_sd_outcome` puts the outcomes on one scale.
+
+```{r}
+show_table(q1_bridge, digits = 4)
+```
+
+Spearman correlation between transition goals achieved and activities (step 6 sample):
+rho = `r round(q1_bridge_rho$estimate, 2)`, p = `r signif(q1_bridge_rho$p.value, 2)`.
+
+`kindergarten_months` (from `cleanup.R`) counts from the start date to 1 August two
+school years later. For pupils who reached group 3 it can be compared with the months
+until group 3 actually started:
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+kg_measures_plot
 ```
 
 # Q2: learning goals and CITO results
