@@ -6,7 +6,8 @@
 # Needs R/cleanup.R to have been sourced.
 
 # Assumptions (one place to change them)
-g3_start_day <- "08-20" # group 3 starts on 20 August
+g3_start_month <- 8L # group 3 starts on 20 August
+g3_start_mday <- 20L
 cutoff_offset <- 6L # 1 January cut-off: born in year B -> group 3 in August of B + 6
 achieved_min <- 2 # observation score (0-3) that counts as a goal achieved
 
@@ -75,7 +76,7 @@ pupil_timing <- data_kids %>%
     age_at_start = lubridate::time_length(lubridate::interval(date_of_birth, start_date), "years"),
     entry_school_year = school_year_start(start_date),
     reached_g3 = !is.na(g3_year),
-    g3_start = as.Date(paste0(g3_year, "-", g3_start_day)),
+    g3_start = lubridate::make_date(g3_year, g3_start_month, g3_start_mday), # NA when not reached
     months_to_g3 = as.numeric(g3_start - start_date) / 30.44,
     age_at_g3 = lubridate::time_length(lubridate::interval(date_of_birth, g3_start), "years"),
     expected_g3_year = lubridate::year(date_of_birth) + cutoff_offset,
