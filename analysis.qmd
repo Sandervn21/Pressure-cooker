@@ -25,6 +25,7 @@ source("R/pupil_table.R")
 source("R/direct_path.R")
 source("R/stage1.R")
 source("R/explained_variance.R")
+source("R/conclusions.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
 source("R/q2_analysis.R")
@@ -210,6 +211,14 @@ per child.
 show_table(g3_by_birth_month, digits = 0)
 ```
 
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_timing())
+```
+:::
+
 ## Goals achieved before group 3
 
 The second table: what share of the goals that matter for group 3 pupils had achieved when
@@ -237,6 +246,14 @@ lowest and highest pupil; `p10_pct`, `p90_pct`: 10% of pupils are below / above 
 ```{r}
 show_table(goals_overview, digits = 1)
 ```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_goals())
+```
+:::
 
 ## Columns
 
@@ -340,6 +357,14 @@ achievers, so this shows whether they are concentrated among pupils with short k
 show_table(direct_equity)
 ```
 
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_direct())
+```
+:::
+
 # Readiness at the end of kindergarten (Q1 and Q2)
 
 Which groups 1-2 factors go with how many goals a pupil has reached when group 3 starts?
@@ -414,6 +439,14 @@ next to the class comparison rather than used in the models.
 ```{r}
 show_table(class_quality_kg_classes)
 ```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_stage1())
+```
+:::
 
 # What contributes to the outcomes?
 
@@ -569,6 +602,14 @@ ev_variance_table %>%
   show_table()
 ```
 
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_variance())
+```
+:::
+
 # Q1 as first reported: time in kindergarten × extracurricular activities
 
 Development is the average z-score across learning goals per pupil.
@@ -650,6 +691,14 @@ until group 3 actually started:
 #| fig-height: 5
 kg_measures_plot
 ```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_q1_reported())
+```
+:::
 
 # Q2: learning goals and CITO results
 
