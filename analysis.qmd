@@ -12,9 +12,19 @@ execute:
   message: false
 ---
 
-All computation lives in `R/`; this notebook runs the scripts in order and shows their results.
-The raw Excel exports must be in `data/` (see the README). Long tables are folded away: click
-**Show table** to open them. Each table has a **How this table was made** note.
+This notebook is the analysis behind our advice to Het Epos. It is written for the team: read it
+top to bottom to follow the argument, and use it as the source for the report.
+
+- **Chapters 1-5** each answer one question and end with a green **Conclusion** box.
+- **Chapter 6** puts the chapters together: what the results point to, the limitations, open
+  questions for the school, and which chapter feeds which part of the report.
+- **How this was made** notes (folded) explain every table and figure: data, steps, assumptions.
+- **Appendices** hold the reference material: data checks, the pupil table, lesson and domain
+  lists, and the first versions of the analyses with what changed.
+
+All numbers in the text are computed from the data when the notebook is rendered, so they always
+match the tables. The data itself stays in `data/` and is never committed (see the README). Long
+tables are folded away: click **Show table** to open them.
 
 ```{r}
 #| label: setup
@@ -51,77 +61,73 @@ show_table <- function(x, digits = 3, collapse_after = 15) {
 }
 ```
 
-# Data preparation
+# Summary
 
-## CITO scores that are not numbers
-
-::: {.callout-note collapse="true" title="How this table was made"}
-The `Score` column of the Cito workbook (all class sheets stacked) is read as text, decimal
-commas are replaced by points and the result is converted to a number. This table lists every
-distinct non-empty value that still could not be read as a number. Those scores are treated as
-missing everywhere below.
-:::
+The key result of each chapter, in one line:
 
 ```{r}
-show_table(failed_conversion)
+#| output: asis
+#| echo: false
+cat(summary_overview())
 ```
 
-## CLASS observations with date problems
+# The question and our approach
 
-::: {.callout-note collapse="true" title="How this table was made"}
-One row per CLASS observation (`CLASS.xlsx`) whose `Date` could not be read as a date, or whose
-date falls in a different quarter than its `Quarter` column (for example a date in March with
-`Quarter` = `2023_Q2`). `assessment_date` is the date as read, `expected_quarter` the quarter that
-date belongs to. CLASS scores are averaged per school year and class later on, so these rows
-are still used, by their school year.
-:::
+Het Epos asked two questions about the first two years of primary school (groups 1-2,
+"kindergarten"):
 
-```{r}
-show_table(class_date_issues)
+- **Q1, time in kindergarten.** What does a longer period in kindergarten do for pupils'
+  cognitive, social-emotional and executive development, and for how they do in groups 3 and 4?
+  The coordinator of groups 1-2 would like to extend kindergarten and needs evidence for the board.
+- **Q2, teaching focus.** What does a focus on the learning goals that prepare for group 3 do for
+  achievement later on? The two kindergarten classes differ in how strongly they work towards
+  these goals.
+
+We answer both with one picture: things that differ between pupils in kindergarten, the skills
+they have when kindergarten ends, and how they do in group 3.
+
+```{mermaid}
+flowchart LR
+  A["<b>Kindergarten factors</b><br/>time in kindergarten<br/>class and classroom quality<br/>extracurricular lessons<br/>support"]
+  B["<b>Readiness</b> at the end of kindergarten<br/>subjects · learning domains · goals"]
+  C["<b>Group 3 outcomes</b><br/>Cito maths, TMT, spelling<br/>support · well-being"]
+  A -- "chapter 3" --> B
+  B -- "chapters 4 and 5" --> C
+  A -- "chapter 2" --> C
 ```
 
-## Learning-goal scores
+- **Chapter 1** pins down who the pupils are, when they started group 3 and how long they spent
+  in kindergarten: the basis for everything else, and the two tables the school asked for.
+- **Chapter 2** follows the bottom arrow: does more time in kindergarten go with better group 3
+  results? (Q1)
+- **Chapter 3** follows the first arrow: what does more time, the class and extracurricular lessons
+  go with at the end of kindergarten? (Q1 and Q2)
+- **Chapter 4** puts all kindergarten factors and readiness side by side: how much of the
+  differences in group 3 does each account for?
+- **Chapter 5** zooms into readiness: which subjects, learning domains and goals carry it, and does
+  that hold for pupils the model has not seen? (Q2)
 
-::: {.callout-note collapse="true" title="How this table was made"}
-One row per learning-goal code (`Leerpadcode`) in the groups 1-2 observations. For every pupil,
-all observations of that goal are averaged into one score (scale 0-3, values as recorded); the
-columns then summarise those per-pupil averages across pupils: how many pupils have the goal,
-and the mean, standard deviation, median, minimum and maximum. Observations from different ages
-are mixed, so a goal observed mostly in the first months scores lower than one observed later.
-:::
+**Data.** Eight exports from the school: the pupil list, teacher observations of learning goals in
+groups 0-2, Cito (LiB) results, maths method tests, extracurricular lessons, support records, CLASS
+classroom observations and the pupil questionnaire. Pupils are linked across files by name.
 
-```{r}
-show_table(score_summary)
-```
+**Key definitions** (details in the notes of chapter 1):
 
-## CITO scores
+- *Start of group 3*: 20 August of the first school year with a grade 3 Cito result (or, for pupils
+  who just started group 3, counted back from their current year group).
+- *Time in kindergarten*: months from the start date to the start of group 3.
+- *Readiness*: for each learning goal, the last teacher observation before group 3 (0-3). Summed up
+  per subject or domain, and **compared with classmates**, because teachers in different classes may
+  score the same goals differently (checked in chapter 5).
+- *Goals before group 3*: the 15 goals the school marked as important for a good start in group 3.
+- *Cito ability score*: the 0-5 score that is comparable across tests, at the end of group 3.
 
-::: {.callout-note collapse="true" title="How this table was made"}
-One row per Cito test. For every pupil, all their scores on that test are averaged, over every
-grade (3 to 6) and both assessment moments (mid and end of year); the columns summarise those
-per-pupil averages across pupils. Cito scores grow with grade and each test has its own scale,
-so these numbers describe the export rather than a single moment.
-:::
+# 1. Who are the pupils, and how long are they in kindergarten?
 
-```{r}
-show_table(grade_summary)
-```
+Before comparing pupils, we need to know for each of them when group 3 started and how long they
+spent in kindergarten. The data has no single column for either, so this chapter builds them, checks
+them, and produces the two overview tables the school asked for.
 
-## Extracurricular activities
-
-::: {.callout-note collapse="true" title="How this table was made"}
-Number of rows per lesson name in `Extracurricular.xlsx`, over all school years and all
-pupils. A row is one pupil taking one lesson in one block, so a pupil who took the same
-lesson in several blocks counts several times.
-:::
-
-```{r}
-data_extra |>
-  count(Lesson, sort = TRUE) |>
-  show_table()
-```
-
-# Pupils, kindergarten time and readiness
 
 One row per pupil (`pupils_table`, built in `R/pupil_table.R`). Of the
 `r nrow(pupils_table)` pupils in the master list, `r sum(pupils_table$reached_g3)` have
@@ -257,34 +263,11 @@ cat(conclusion_goals())
 ```
 :::
 
-## Columns
+# 2. Does more time in kindergarten pay off in group 3? (Q1)
 
-::: {.callout-note collapse="true" title="How this table was made"}
-A description of each group of columns in `pupils_table`. The exact steps for every column are
-in `R/pupil_table.R`; time windows always follow the pupil's own start of group 3 (20 August of
-the group 3 year, see "When group 3 started"). Lessons and support during kindergarten only count
-school years the export covers (lessons from 2021/22, support from the first year in the
-support file), so pupils from the first cohorts can have fewer kindergarten years with data.
-:::
+The coordinator's question first, in its simplest form: compare pupils with more and less time
+in kindergarten on how they do in group 3, without looking at what happened in kindergarten.
 
-```{r}
-show_table(pupils_table_columns)
-```
-
-Pupils who reached group 3 with a value in each column:
-
-::: {.callout-note collapse="true" title="How this table was made"}
-For each column of `pupils_table`, the number of pupils who reached group 3 with a non-missing
-value. Low numbers mean the export does not cover that pupil's years (for example support
-before the support file starts) or the test was not taken (for example reading comprehension
-in grade 3).
-:::
-
-```{r}
-show_table(pupils_table_coverage)
-```
-
-# Q1: kindergarten time and group 3 outcomes
 
 Do pupils who spent longer in kindergarten do better in group 3? Each outcome is compared with
 time in kindergarten directly, without looking at what happened in kindergarten itself.
@@ -367,7 +350,13 @@ cat(conclusion_direct())
 ```
 :::
 
-# Readiness at the end of kindergarten (Q1 and Q2)
+# 3. What does more time go with at the end of kindergarten? (Q1, Q2)
+
+Group 3 Cito is one place where more time could show. The client also asked about social-emotional
+and executive development, which the teachers observe in kindergarten itself. This chapter looks at
+readiness at the end of kindergarten, and at the other differences between pupils there: their
+class (the teaching focus of Q2) and their extracurricular lessons.
+
 
 Which groups 1-2 factors go with how many goals a pupil has reached when group 3 starts?
 Time in kindergarten answers the first part of Q1 (does more time mean more goals reached?);
@@ -450,7 +439,12 @@ cat(conclusion_stage1())
 ```
 :::
 
-# What contributes to the outcomes?
+# 4. What contributes most to group 3 outcomes?
+
+Chapters 2 and 3 looked at one factor at a time. Here all kindergarten factors and readiness are
+fitted together, to see how much of the differences in group 3 each one accounts for, and where
+time in kindergarten ranks.
+
 
 Time in kindergarten is one of several things that differ between pupils in groups 1-2. This
 section puts them side by side, in blocks: **time**, **classroom**, **extracurricular lessons**,
@@ -470,14 +464,14 @@ group 3 outcome (for Cito and support). `n` is shown per outcome.
   move together too closely to be told apart, so they are combined.
 - *Extracurricular*: distinct lessons per kindergarten year, by kind of lesson (sport &
   movement, arts & culture, technology, science & strategy, language & numbers, life skills &
-  play; see "Lesson categories"). Kinds nobody took in kindergarten are left out.
+  play; see Appendix C). Kinds nobody took in kindergarten are left out.
 - *Support*: any support during kindergarten, by kind of need (language, learning, other:
   behaviour, motor skills, assessment). For the first cohorts the support file covers none of
   their kindergarten years, so they count as without support; the cohort control keeps this
   from looking like an effect.
 - *Readiness* (group 3 outcomes only): last observation scores per subject (maths, language,
   social-emotional, motor), **compared with classmates** (standardised within each kindergarten
-  class), because the two classes' teachers score differently (see the readiness section).
+  class), because teachers in different classes may score differently (checked in chapter 5).
 
 **Models.** One linear regression per outcome with all features and the leaving cohort as a
 control; support in group 3 (yes/no) as a linear probability model. Continuous features and the
@@ -506,21 +500,6 @@ it takes over part of their share.
 time, a class or support at random. The shares describe which differences between pupils go
 together with differences in the outcome.
 :::
-
-## Lesson categories
-
-::: {.callout-note collapse="true" title="How this table was made"}
-Every lesson name in `Extracurricular.xlsx` with its number of rows and its kind. Kinds come from
-a list of the lesson names in `R/explained_variance.R` (`assigned_by` = list); names not on that
-list get a kind from English and Dutch keywords (`keywords`), or `Other` when nothing matches.
-Mixed lessons go to their main activity (for example *Singing and Dance* to arts & culture, *Sports
-and Games* to sport & movement); chess and draughts sit with technology & science as strategy
-games.
-:::
-
-```{r}
-show_table(lesson_categories)
-```
 
 ## Features against the outcomes
 
@@ -612,9 +591,10 @@ cat(conclusion_variance())
 ```
 :::
 
-# Which goals matter? (Q2)
+# 5. Which skills and goals matter? (Q2)
 
-In the explained-variance section, readiness at the end of kindergarten accounted for
+
+In chapter 4, readiness at the end of kindergarten accounted for
 `r paste0(sub(", end of group 3", "", filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$outcome), " ", fmt(filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$r2_share), collapse = ", ")`
 of the variance in group 3 Cito. Those shares describe the pupils the models were fitted on.
 This section checks how much of it holds for pupils a model has not seen, and looks inside the
@@ -630,11 +610,9 @@ the teachers score, which is why readiness is compared with classmates everywher
 **Models.** The cross-validated elastic net from the original Q2 analysis (`R/cv_models.R`):
 missing values filled with the training folds' median and features standardised inside each
 training split, the penalty chosen by an inner 5-fold split, 5 folds repeated 10 times (50 fits per
-model and test). Six models, each adding one block, the same blocks as in the explained-variance
-section: *average only*; *cohort*; *+ kindergarten factors* (time, classroom, extracurricular,
+model and test). Six models, each adding one block, the same blocks as in chapter 4: *average only*; *cohort*; *+ kindergarten factors* (time, classroom, extracurricular,
 support); *+ readiness by subject* (maths, language, social-emotional, motor, compared with
-classmates); *+ readiness by domain* (the learning domains of those subjects, see "Learning
-domains"); *+ readiness by goal* (the last score before group 3 on each of the 15 goals before
+classmates); *+ readiness by domain* (the learning domains of those subjects, see Appendix C); *+ readiness by goal* (the last score before group 3 on each of the 15 goals before
 group 3, minus the class average). The cohort model is an ordinary regression, the others the
 elastic net.
 
@@ -650,7 +628,7 @@ within each kindergarten class.
 **Prediction table.** `mean_rmse`: prediction error for left-out pupils in Cito ability points;
 `predicted_r2`: share of the variance predicted for left-out pupils (0 = no better than the
 average, below 0 = worse), with the 10th-90th percentile over the 10 repeats; `in_sample_r2`: the
-R² of the same blocks in the explained-variance section, fitted on all pupils.
+R² of the same blocks in chapter 4, fitted on all pupils.
 
 **Selection.** For the domain model (subjects and domains) and for the model with all blocks
 (goals), how often each feature has a non-zero coefficient across the 50 fits, and whether it is
@@ -675,15 +653,6 @@ goals_prediction_plot
 
 ```{r}
 show_table(goals_prediction)
-```
-
-## Learning domains
-
-Every value in the goal codes, by domain: its subject, number of goals, observations and pupils,
-the share of pupils who reached group 3 with the domain observed, and whether it enters the models.
-
-```{r}
-show_table(domain_overview, digits = 2)
 ```
 
 ## Subjects and domains that are kept
@@ -717,7 +686,190 @@ cat(conclusion_goals_q2())
 ```
 :::
 
-# Q1 as first reported: time in kindergarten × extracurricular activities
+
+# 6. Putting it together
+
+## What the results point to
+
+```{r}
+#| output: asis
+#| echo: false
+cat(recommendations_overview())
+```
+
+## Limitations
+
+```{r}
+#| output: asis
+#| echo: false
+cat(limitations_overview())
+```
+
+## Questions for the school
+
+- How were the birth dates and start dates anonymised? Are the start dates real first school days?
+- Who decides when a child moves to group 3 earlier or later than most, and on what grounds?
+- Do the two kindergarten classes use shared guidelines for scoring the learning goals?
+- Is there support data from before the current support file, for the first cohorts?
+- What do the goal-code prefixes `DS`, `BS` and `TC`, and the number-only goal codes, stand for?
+- Does group 3 start on (about) 20 August?
+
+## Writing the report
+
+Where each part of the notebook fits in the report (the structure of `Report.docx`):
+
+| Report section | Notebook |
+|---|---|
+| Situation, complication, request | "The question and our approach" |
+| Approach: business and data understanding | Chapter 1, Appendix A |
+| Approach: data preparation | Key definitions, chapter 1 notes, Appendix B |
+| Approach: modelling | Chapters 2-5 (the "How this was made" notes) |
+| Approach: evaluation | Chance levels (chapter 4), prediction for new pupils (chapter 5), limitations |
+| Results | The Conclusion boxes of chapters 1-5, with their main figure |
+| Conclusions, implications and recommendations | Chapter 6 |
+| What changed since the first draft | Appendix D (the activities result and the first Q2 models) |
+
+# Appendix A: Data checks
+
+Checks on the raw exports that the chapters rely on. Nothing here needs action unless a table shows
+unexpected values.
+
+
+## CITO scores that are not numbers
+
+::: {.callout-note collapse="true" title="How this table was made"}
+The `Score` column of the Cito workbook (all class sheets stacked) is read as text, decimal
+commas are replaced by points and the result is converted to a number. This table lists every
+distinct non-empty value that still could not be read as a number. Those scores are treated as
+missing everywhere below.
+:::
+
+```{r}
+show_table(failed_conversion)
+```
+
+## CLASS observations with date problems
+
+::: {.callout-note collapse="true" title="How this table was made"}
+One row per CLASS observation (`CLASS.xlsx`) whose `Date` could not be read as a date, or whose
+date falls in a different quarter than its `Quarter` column (for example a date in March with
+`Quarter` = `2023_Q2`). `assessment_date` is the date as read, `expected_quarter` the quarter that
+date belongs to. CLASS scores are averaged per school year and class later on, so these rows
+are still used, by their school year.
+:::
+
+```{r}
+show_table(class_date_issues)
+```
+
+## Learning-goal scores
+
+::: {.callout-note collapse="true" title="How this table was made"}
+One row per learning-goal code (`Leerpadcode`) in the groups 1-2 observations. For every pupil,
+all observations of that goal are averaged into one score (scale 0-3, values as recorded); the
+columns then summarise those per-pupil averages across pupils: how many pupils have the goal,
+and the mean, standard deviation, median, minimum and maximum. Observations from different ages
+are mixed, so a goal observed mostly in the first months scores lower than one observed later.
+:::
+
+```{r}
+show_table(score_summary)
+```
+
+## CITO scores
+
+::: {.callout-note collapse="true" title="How this table was made"}
+One row per Cito test. For every pupil, all their scores on that test are averaged, over every
+grade (3 to 6) and both assessment moments (mid and end of year); the columns summarise those
+per-pupil averages across pupils. Cito scores grow with grade and each test has its own scale,
+so these numbers describe the export rather than a single moment.
+:::
+
+```{r}
+show_table(grade_summary)
+```
+
+## Extracurricular activities
+
+::: {.callout-note collapse="true" title="How this table was made"}
+Number of rows per lesson name in `Extracurricular.xlsx`, over all school years and all
+pupils. A row is one pupil taking one lesson in one block, so a pupil who took the same
+lesson in several blocks counts several times.
+:::
+
+```{r}
+data_extra |>
+  count(Lesson, sort = TRUE) |>
+  show_table()
+```
+
+# Appendix B: The pupil table
+
+Everything in chapters 1-5 starts from one table with a row per pupil (`pupils_table`, built in
+`R/pupil_table.R`).
+
+## Columns
+
+::: {.callout-note collapse="true" title="How this table was made"}
+A description of each group of columns in `pupils_table`. The exact steps for every column are
+in `R/pupil_table.R`; time windows always follow the pupil's own start of group 3 (20 August of
+the group 3 year, see "When group 3 started"). Lessons and support during kindergarten only count
+school years the export covers (lessons from 2021/22, support from the first year in the
+support file), so pupils from the first cohorts can have fewer kindergarten years with data.
+:::
+
+```{r}
+show_table(pupils_table_columns)
+```
+
+Pupils who reached group 3 with a value in each column:
+
+::: {.callout-note collapse="true" title="How this table was made"}
+For each column of `pupils_table`, the number of pupils who reached group 3 with a non-missing
+value. Low numbers mean the export does not cover that pupil's years (for example support
+before the support file starts) or the test was not taken (for example reading comprehension
+in grade 3).
+:::
+
+```{r}
+show_table(pupils_table_coverage)
+```
+
+# Appendix C: Lesson kinds and learning domains
+
+The lists behind the extracurricular kinds (chapter 4) and the learning domains (chapter 5).
+
+## Lesson categories
+
+::: {.callout-note collapse="true" title="How this table was made"}
+Every lesson name in `Extracurricular.xlsx` with its number of rows and its kind. Kinds come from
+a list of the lesson names in `R/explained_variance.R` (`assigned_by` = list); names not on that
+list get a kind from English and Dutch keywords (`keywords`), or `Other` when nothing matches.
+Mixed lessons go to their main activity (for example *Singing and Dance* to arts & culture, *Sports
+and Games* to sport & movement); chess and draughts sit with technology & science as strategy
+games.
+:::
+
+```{r}
+show_table(lesson_categories)
+```
+
+## Learning domains
+
+Every value in the goal codes, by domain: its subject, number of goals, observations and pupils,
+the share of pupils who reached group 3 with the domain observed, and whether it enters the models.
+
+```{r}
+show_table(domain_overview, digits = 2)
+```
+
+# Appendix D: Earlier analyses and what changed
+
+The first versions of Q1 and Q2 (in `Report.docx` and `Analysis Results.docx`) are kept here, with
+the checks that show why the chapters above changed them. Text in the report that is based on them
+needs updating.
+
+## Q1 as first reported: time in kindergarten × extracurricular activities
 
 Development is the average z-score across learning goals per pupil.
 Both predictors are mean-centred, so each main effect is the effect at the average of the other predictor.
@@ -756,7 +908,7 @@ confint(m_q1)
 q1_plot
 ```
 
-## Robustness of the activities effect
+### Robustness of the activities effect
 
 The model above changes one thing at a time, from the reported specification towards
 pupils who reached group 3, their actual time until group 3, and the transition goals
@@ -772,9 +924,9 @@ Each row refits the regression of the section above with one more change than th
    control, so older and younger pupils are compared at the same time in school.
 4. Keeps only pupils who reached group 3.
 5. Replaces `kindergarten_months` with months until group 3 actually started (as in the
-   kindergarten table above).
+   kindergarten table in chapter 1).
 6. Replaces development with the share of the 15 goals before group 3 achieved on the last
-   observation before group 3 (as in the goals table above).
+   observation before group 3 (as in the goals table in chapter 1).
 
 **Columns.** `n`: pupils in the model; `activities_b`: change in the outcome per extra activity,
 at average kindergarten time; `ci_low`, `ci_high`: 95% confidence interval; `p`: p-value;
@@ -807,11 +959,11 @@ cat(conclusion_q1_reported())
 ```
 :::
 
-# Q2 as first reported
+## Q2 as first reported
 
 The first Q2 analysis (`R/q2_analysis.R`) predicted group 3 Cito from observation scores per
 subject with the cross-validated elastic net, and picked two subjects per test for simpler
-models. The "Which goals matter?" section above reuses the same elastic net, with corrected inputs:
+models. Chapter 5 reuses the same elastic net, with corrected inputs:
 
 - observation scores as the **last score before group 3**, compared with classmates, instead of the
   average of all observations at any age;

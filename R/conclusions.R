@@ -220,3 +220,160 @@ conclusion_goals_q2 <- function() {
     )
   )
 }
+
+# --- Notebook-wide summary and what the results point to ------------------------------------
+
+# Largest gain per 6 months the intervals allow for the primary Cito outcomes, in SD
+direct_max_gain <- function() {
+  primary <- filter(direct_months, role == "primary", controls == "cohort + class")
+  outcome_sd <- map_dbl(direct_outcomes$outcome[match(primary$outcome, direct_outcomes$label)], function(o) {
+    d <- drop_na(select(direct_data, all_of(c(o, "kg_6_months", "cohort", "kg_class"))))
+    sd(d[[o]])
+  })
+  max(primary$ci_high / outcome_sd)
+}
+
+# Subjects and domains kept in at least `min_pct` of fits for at least `min_tests` Cito tests
+consistent_predictors <- function(min_pct = 70, min_tests = 2) {
+  goals_selection %>%
+    filter(model == "+ readiness by domain", block %in% c("Readiness", "Readiness by domain"), selected_pct >= min_pct) %>%
+    count(predictor, name = "tests") %>%
+    filter(tests >= min_tests) %>%
+    arrange(desc(tests))
+}
+
+readiness_name <- function(outcome) {
+  unname(c(
+    transition_share = "the goals before group 3", basic_share = "the basic goals", ready_maths = "maths",
+    ready_language = "language", ready_social_emotional = "social-emotional", ready_fine_motor = "fine motor",
+    ready_gross_motor = "gross motor"
+  )[outcome])
+}
+
+summary_overview <- function() {
+  reached <- filter(pupils_table, reached_g3)
+  gap <- as.numeric(reached$start_date - reached$date_of_birth - 365.25 * 4) / 30.44
+  usual <- reached %>% count(g3_year_offset) %>% slice_max(n, n = 1, with_ties = FALSE)
+  all_rows <- bind_rows(direct_months, direct_under_24) %>% filter(!is.na(p))
+  time_rows <- filter(stage1_main, factor == "6 more months in kindergarten")
+  ready_class <- class_cito_check[1, ]
+  cito_class <- class_cito_check[-1, ]
+  v <- filter(ev_variance_table, framing == "kindergarten factors")
+  time_v <- filter(v, block == "Time")
+  above <- v %>%
+    group_by(block) %>%
+    summarise(k = sum(r2_share_low > noise_level), n = n(), .groups = "drop") %>%
+    filter(k > 0)
+  best <- goals_prediction %>% filter(str_starts(model, "\\+ readiness")) %>% slice_max(predicted_r2, n = 1, with_ties = FALSE)
+  kept <- consistent_predictors()
+  bullets(
+    paste0(
+      "**Who and how long (chapter 1).** ", nrow(reached), " pupils have reached group 3. ",
+      if (max(abs(gap), na.rm = TRUE) < 2) "Start dates lie at the 4th birthday, so time in kindergarten equals the age at the start of group 3 minus 4. " else "",
+      pct(usual$n / nrow(reached)), " started group 3 in the year they turned ", usual$g3_year_offset, "; ",
+      sum(reached$g3_timing == "earlier than most"), " a year earlier and ", sum(reached$g3_timing == "later than most"), " a year later."
+    ),
+    paste0(
+      "**More time and group 3 (chapter 2).** ",
+      if (sum(all_rows$p < 0.05) == 0) paste0("None of the ", nrow(all_rows), " estimates has") else
+        paste0(sum(all_rows$p < 0.05), " of the ", nrow(all_rows), if (sum(all_rows$p < 0.05) == 1) " estimates has" else " estimates have"),
+      " p < .05; for Cito maths, TMT and spelling, gains larger than ", fmt(direct_max_gain()),
+      " SD per 6 extra months are ruled out."
+    ),
+    paste0(
+      "**More time and readiness (chapter 3).** More time goes with higher ",
+      and_list(readiness_name(time_rows$outcome[time_rows$p < 0.05])), " readiness",
+      if (any(time_rows$p >= 0.05)) paste0(", not with ", and_list(readiness_name(time_rows$outcome[time_rows$p >= 0.05]))) else "",
+      ". Class 1/2b scores maths readiness ",
+      fmt(ready_class$difference_sd), " SD higher than 1/2a, while its pupils' group 3 Cito differs by ",
+      fmt(min(cito_class$difference_sd)), " to ", fmt(max(cito_class$difference_sd)), " SD",
+      if (all(cito_class$p >= 0.05)) " (within chance)." else "."
+    ),
+    paste0(
+      "**What contributes (chapter 4).** Time accounts for at most ", pct(max(max(time_v$above_noise), 0), 1),
+      " of the variance beyond chance. Blocks clearly above chance within this sample: ",
+      if (nrow(above) == 0) "none" else and_list(paste0(tolower(above$block), " (", above$k, " of ", above$n, " outcomes)")),
+      "; chapter 5 tests them on new pupils."
+    ),
+    paste0(
+      "**Which skills (chapter 5).** For new pupils, kindergarten data predicts at most ", pct(max(best$predicted_r2, 0)),
+      " of the variance in group 3 Cito (", sub(", end of group 3", "", best$Test), "). The skills that predict most",
+      " consistently (kept in at least 70% of fits): ",
+      if (nrow(kept) == 0) "none" else and_list(paste0(sub("^(domain|readiness): ", "", kept$predictor), " (",
+                                                         ifelse(kept$tests == 3, "all 3 tests", paste(kept$tests, "of 3 tests")), ")")), "."
+    )
+  )
+}
+
+recommendations_overview <- function() {
+  all_rows <- bind_rows(direct_months, direct_under_24) %>% filter(!is.na(p))
+  time_rows <- filter(stage1_main, factor == "6 more months in kindergarten", p < 0.05)
+  ready_class <- class_cito_check[1, ]
+  cito_class <- class_cito_check[-1, ]
+  kept <- consistent_predictors()
+  support_above <- ev_variance_table %>%
+    filter(framing == "kindergarten factors", block == "Support", r2_share_low > noise_level)
+  out <- c(
+    if (sum(all_rows$p < 0.05) == 0) {
+      paste0(
+        "**Time in kindergarten.** Extending kindergarten is unlikely to raise group 3 Cito results by more than ",
+        fmt(direct_max_gain()), " SD per 6 months.",
+        if (nrow(time_rows) > 0) paste0(" Where more time does show up is in ", and_list(readiness_name(time_rows$outcome)),
+                                       " readiness at the end of kindergarten",
+                                       if ("ready_social_emotional" %in% time_rows$outcome) ", which includes the social-emotional development the client asked about." else ".") else ""
+      )
+    } else {
+      "**Time in kindergarten.** Some estimates link time in kindergarten to group 3 outcomes; see chapter 2 before drawing a conclusion."
+    },
+    if (ready_class$p < 0.05 && all(cito_class$p >= 0.05)) {
+      "**Learning-goal observations.** The two classes score the same goals differently without a matching difference on Cito: agree on common scoring rules before using the observations to compare classes or steer teaching."
+    },
+    if (nrow(kept) > 0) {
+      paste0(
+        "**Teaching focus.** The kindergarten skills that most consistently go with group 3 results are ",
+        and_list(sub("^(domain|readiness): ", "", kept$predictor)), ": candidates for extra attention and monitoring before group 3."
+      )
+    },
+    if (nrow(support_above) > 0) {
+      "**Early signals.** Support needs in kindergarten go with lower readiness and later support: the kindergarten observations and support records already show which children will need attention in group 3."
+    },
+    paste0(
+      "**Caution.** All of this describes associations in about ", round(median(goals_prediction$n)),
+      " pupils with group 3 Cito; none of it shows that changing one factor would change the outcome."
+    )
+  )
+  bullets(out)
+}
+
+limitations_overview <- function() {
+  reached <- filter(pupils_table, reached_g3)
+  gap <- as.numeric(reached$start_date - reached$date_of_birth - 365.25 * 4) / 30.44
+  ready_class <- class_cito_check[1, ]
+  cito_class <- class_cito_check[-1, ]
+  bullets(
+    paste0(
+      "**Few pupils.** ", nrow(reached), " pupils reached group 3 and ", sum(reached$has_cito_g3),
+      " have grade 3 Cito results; group 4 Cito and reading comprehension in group 3 have ",
+      and_list(unique(range(sum(!is.na(reached$cito_g4_maths)), sum(!is.na(reached$cito_g3_reading))))) %>%
+        sub(" and ", " to ", .),
+      " pupils. Only moderate differences can be detected."
+    ),
+    if (max(abs(gap), na.rm = TRUE) < 2) {
+      "**Time and age.** Start dates follow the birth date, so time in kindergarten and age at the start of group 3 move together and cannot be told apart."
+    } else {
+      "**Time and age.** Time in kindergarten and age at the start of group 3 overlap strongly."
+    },
+    "**Placement is a choice.** Children who started group 3 earlier or later than most were placed on purpose, probably based on how ready they seemed.",
+    if (ready_class$p < 0.05 && all(cito_class$p >= 0.05)) {
+      "**Teacher-scored readiness.** The classes score the same goals differently, so readiness is only compared within each class."
+    } else {
+      "**Teacher-scored readiness.** Readiness comes from teacher observations, not tests; it is compared within each class."
+    },
+    paste0(
+      "**Data coverage.** Extracurricular lessons are known from ", extra_years[1], "/", extra_years[1] + 1,
+      " and support from ", support_years[1], "/", support_years[1] + 1, ", so the first cohorts have less information about kindergarten."
+    ),
+    "**Many comparisons.** Several outcomes and features are tested; single results can be chance. Chance levels (chapter 4) and prediction for new pupils (chapter 5) guard against this.",
+    "**Associations, not effects.** No factor was assigned at random, so the results show what goes together, not what causes what."
+  )
+}

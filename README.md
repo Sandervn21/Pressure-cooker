@@ -12,16 +12,7 @@ extracurricular activities in groups 1–2 relate to results in group 3 and late
    renv::restore()
    ```
 
-3. Put the Het Epos Excel exports in `data/` (this folder is gitignored; never commit pupil data):
-
-   - `Extracurricular.xlsx`
-   - `Observaties_groep_1_2.xlsx`
-   - `Cito_UvA_EN.xlsx`
-   - `Pupils.xlsx`
-   - `Support interventions_care team.xlsx`
-   - `CLASS.xlsx`
-   - `pupil questionnaire.xlsx` (optional; without it the well-being columns stay empty)
-   - `UvA_testresults_math.xlsx` (optional; used to confirm when group 3 started)
+3. Put the Het Epos Excel exports in `data/` (this folder is gitignored; never commit pupil data).
 
 ## Run
 
