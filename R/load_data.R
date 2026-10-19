@@ -32,8 +32,8 @@ read_sheets <- function(file, required, sheet_column) {
 
 data_extra <- read_raw("Extracurricular.xlsx")
 data_observatie <- read_raw("Observaties_groep_1_2.xlsx")
-# Cito has one sheet per class (plus explanation sheets); the class is only in the sheet name
-data_grade <- read_sheets("Cito_UvA_EN.xlsx", c("Grade", "Test", "Score", "Name"), sheet_column = "Class")
+# Cito has one sheet per leaving cohort (CLASS_2028, ...), plus explanation sheets
+data_grade <- read_sheets("Cito_UvA_EN.xlsx", c("Grade", "Test", "Score", "Name"), sheet_column = "Sheet")
 data_kids <- read_raw("Pupils.xlsx")
 data_intervention <- read_raw("Support interventions_care team.xlsx")
 data_CLASS <- read_raw("CLASS.xlsx")
