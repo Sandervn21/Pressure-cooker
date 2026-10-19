@@ -1,0 +1,449 @@
+---
+pagetitle: "Het Epos: early years and later results"
+author: "Sander van Nieuwenhuijzen, Teodora Costache, Mariia Steeghs-Turchina"
+format:
+  revealjs:
+    theme: [default, report/theme.scss]
+    width: 1300
+    height: 900
+    margin: 0
+    center: false
+    transition: none
+    embed-resources: true
+    pdf-max-pages-per-slide: 1
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+<!--
+How to edit this deck
+- Slide text is plain markdown: change it directly below.
+- Numbers come from the analysis as inline R (num$usual_share and so on, listed in
+  report/numbers.R), so they stay correct when the data changes. Keep them inline instead of
+  typing the values.
+- Figures come from report/plots.R; the look from report/theme.scss.
+- Building blocks: "::: {.kpi}" big number, ":::: {.cards}" cards, ":::: {.columns}" two columns.
+-->
+
+```{r}
+#| label: setup
+#| include: false
+
+# FALSE: renders in seconds without data, numbers show as "…" and figures as placeholders.
+# TRUE: fills in the numbers and figures from the analysis. Needs the data in data/ (see the README).
+use_analysis <- TRUE
+
+knitr::opts_chunk$set(dev = "ragg_png", dpi = 200)
+source("report/numbers.R")
+
+if (use_analysis) {
+  for (f in c("setup", "load_data", "cleanup", "pupil_table", "direct_path", "stage1",
+              "explained_variance", "cv_models", "goals", "conclusions")) {
+    source(file.path("R", paste0(f, ".R")))
+  }
+  source("report/plots.R")
+  has_frutiger <- any(grepl("frutiger", systemfonts::system_fonts()$family, ignore.case = TRUE))
+  report_font <- register_report_font(if (has_frutiger) "Frutiger Next Pro" else "Open Sans")
+  num <- report_numbers()
+} else {
+  num <- placeholder_numbers()
+}
+
+figure <- function(fun, placeholder) {
+  if (use_analysis) print(get(fun)()) else cat(paste0("*[Figure: ", placeholder, "]*\n"))
+}
+# Speaker notes: the notebook's written conclusion behind a slide
+notes <- function(fun) if (use_analysis) cat(get(fun)(), "\n")
+```
+
+## {.cover background-gradient="linear-gradient(to right, #ffffff 50%, #F6A70A 50%)"}
+
+![](report/uva-logo.jpg){.cover-logo .nostretch}
+
+![](report/het-epos-drawing.png){.cover-drawing .nostretch fig-alt="Drawing of the Het Epos school building"}
+
+::: {.cover-text}
+[Het Epos: early years and later results]{.cover-title}
+
+[Group 4]{.cover-group}
+
+| Sander van Nieuwenhuijzen
+| Teodora Costache
+| Mariia Steeghs-Turchina
+:::
+
+## Time in kindergarten is hardly related to group 3 results, while early skills and support needs are {.answer}
+
+:::: {.cards}
+::: {.card}
+[1]{.card-number}
+
+**Time in kindergarten**
+
+Children who spent more time in kindergarten have similar Cito scores in group 3. Six extra
+months would add at most `r num$max_gain` SD.
+:::
+
+::: {.card}
+[2]{.card-number}
+
+**Early skills**
+
+Skills at the end of kindergarten, especially hearing sounds and engagement, say more about how
+children do in group 3.
+:::
+
+::: {.card}
+[3]{.card-number}
+
+**Scoring the learning goals**
+
+The two classes score the same learning goals differently, which makes them hard to compare.
+:::
+::::
+
+## Het Epos wants to know if a longer kindergarten or a stronger focus on group 3 goals helps pupils later on
+
+:::: {.columns}
+::: {.column width="33%"}
+**Situation**
+
+- Het Epos is a primary school working with children from Zuidwijk, Rotterdam
+- Children start kindergarten from age 4; schools have different birth date cut-offs
+- Depending on when a child is born, they spend more or less time in kindergarten
+- Het Epos uses a January cut-off to offer children as much time in school as possible
+:::
+
+::: {.column width="33%"}
+**Complication**
+
+- Unequal time: children born in autumn get less time in groups 1-2
+- It is unclear which areas of knowledge teachers should focus on
+- Decisions and funding need evidence on whether admitting children earlier is beneficial and
+  feasible
+:::
+
+::: {.column width="33%"}
+**Request**
+
+- **Time:** does a longer kindergarten help children's development and results in groups 3 and 4?
+- **Focus:** does teaching towards the group 3 goals improve later results?
+- **Priority:** which of the two matters more?
+:::
+::::
+
+## We linked each pupil's kindergarten data to their group 3 results
+
+```{r}
+#| fig-width: 10
+#| fig-height: 4
+figure("slide_diagram", "kindergarten factors, readiness and group 3 outcomes")
+```
+
+## How long a child stays in kindergarten mostly depends on their birth date
+
+:::: {.columns}
+::: {.column width="40%"}
+::: {.kpi}
+[`r num$usual_share`]{.kpi-value}
+
+[of pupils moved to group 3 in the year they turned `r num$usual_age`]{.kpi-caption}
+:::
+
+- Children start on their 4th birthday and move to group 3 in the August of the year they turn
+  `r num$usual_age` (the January cut-off), so children born in autumn get the least time.
+- `r num$n_moved` of the `r num$n_reached` pupils moved up a year earlier or later than their age
+  group.
+- This means that in our data, time in kindergarten and age are almost the same thing.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 5.2
+figure("slide_time_by_birth", "months in kindergarten by birth month")
+```
+:::
+::::
+
+::: {.notes}
+```{r}
+#| output: asis
+notes("conclusion_timing")
+```
+:::
+
+## Pupils who spent more time in kindergarten do not have higher Cito scores in group 3
+
+:::: {.columns}
+::: {.column width="40%"}
+::: {.kpi}
+[`r num$max_gain` SD]{.kpi-value}
+
+[the largest gain from six extra months that still fits our data, which would be a small
+effect]{.kpi-caption}
+:::
+
+- For the `r num$n_cito` pupils with Cito results, scores in maths, reading speed and spelling
+  were slightly lower for pupils with more time in kindergarten.
+- None of the `r num$n_direct` comparisons we made showed a clear difference.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 5.6
+figure("slide_direct_scatter", "Cito score by months in kindergarten")
+```
+:::
+::::
+
+::: {.notes}
+```{r}
+#| output: asis
+notes("conclusion_direct")
+```
+:::
+
+## More time in kindergarten is related to better social-emotional and gross motor development
+
+:::: {.columns}
+::: {.column width="40%"}
+::: {.kpi}
+[`r num$top_ready_sd` SD]{.kpi-value}
+
+[in `r num$top_ready_name` development for every six extra months]{.kpi-caption}
+:::
+
+- Maths and language scores at the end of kindergarten are similar for children with more and
+  less time.
+- These scores come from teacher observations in class.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 4.6
+figure("slide_time_readiness", "readiness difference per six extra months")
+```
+:::
+::::
+
+::: {.notes}
+```{r}
+#| output: asis
+notes("conclusion_stage1")
+```
+:::
+
+## Readiness and support needs explain more of the group 3 results than time in kindergarten
+
+:::: {.columns}
+::: {.column width="40%"}
+::: {.kpi}
+[`r num$time_share_max`]{.kpi-value}
+
+[of the differences in group 3 explained by time in kindergarten, at most]{.kpi-caption}
+:::
+
+- Readiness at the end of kindergarten explains up to `r num$ready_share_max`.
+- Children who got support in kindergarten more often need support in group 3 as well.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 5.2
+figure("slide_contributions", "share of the differences per factor")
+```
+:::
+::::
+
+::: {.notes}
+```{r}
+#| output: asis
+notes("conclusion_variance")
+```
+:::
+
+## Children who take sport and movement lessons have somewhat higher Cito scores in group 3
+
+:::: {.columns}
+::: {.column width="40%"}
+- **Sport & movement:** higher scores in maths, reading speed and spelling.
+- **Life skills & play:** lower scores in maths.
+- **Arts & culture:** lower scores in reading speed.
+- **Technology, science & strategy:** needed support less often.
+- Families choose these lessons themselves, so other differences between families may play a
+  role.
+- We tested many combinations, so a single result can be chance.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 4.6
+figure("slide_lessons", "each kind of lesson against the group 3 outcomes")
+```
+:::
+::::
+
+## Class 1/2b gives higher maths readiness scores, but its pupils score the same on Cito
+
+:::: {.columns}
+::: {.column width="40%"}
+::: {.kpi}
+[`r num$class_ready_sd` SD]{.kpi-value}
+
+[difference in maths readiness between class 1/2b and 1/2a, as scored by the
+teachers]{.kpi-caption}
+:::
+
+- In group 3, pupils from both classes have about the same Cito scores.
+- This suggests that the classes score the learning goals differently.
+- Because of this, we compared readiness within each class.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 3.8
+figure("slide_class_check", "class difference in readiness and Cito")
+```
+:::
+::::
+
+::: {.notes}
+```{r}
+#| output: asis
+notes("conclusion_goals_q2")
+```
+:::
+
+## Hearing sounds and engagement are the early skills most related to group 3 results
+
+:::: {.columns}
+::: {.column width="40%"}
+- Hearing sounds (auditory development) covers things like rhyming and hearing the first sound of
+  a word, which matter for reading and spelling.
+- Engagement is how involved a child is in class activities.
+- Time in kindergarten was picked in only `r num$time_kept_min`-`r num$time_kept_max`% of the
+  models.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 5
+figure("slide_skills", "how often each skill is picked")
+```
+:::
+::::
+
+## Kindergarten data cannot reliably predict how an individual child will do in group 3
+
+:::: {.columns}
+::: {.column width="40%"}
+::: {.kpi}
+[`r num$best_prediction`]{.kpi-value}
+
+[of the differences in `r num$best_prediction_test` we could predict for new pupils, in the best
+case]{.kpi-caption}
+:::
+
+- For the pupils used to build the models, they explained `r num$in_sample_min`-`r num$in_sample_max`.
+  For new pupils this dropped a lot.
+- The observations are more useful for spotting children who may need extra attention.
+:::
+
+::: {.column width="60%"}
+```{r}
+#| fig-width: 6.4
+#| fig-height: 3.8
+figure("slide_prediction", "explained share, fitted pupils and new pupils")
+```
+:::
+::::
+
+## We recommend four steps for the school
+
+:::: {.cards}
+::: {.card}
+[1]{.card-number}
+
+**Time in kindergarten**
+
+A longer kindergarten is unlikely to improve Cito results. It may still help social-emotional and
+gross motor development.
+:::
+
+::: {.card}
+[2]{.card-number}
+
+**Scoring**
+
+Agree on shared scoring rules for the learning goals in both classes.
+:::
+
+::: {.card}
+[3]{.card-number}
+
+**Key skills**
+
+Keep a close eye on hearing sounds and engagement in the last year of kindergarten.
+:::
+
+::: {.card}
+[4]{.card-number}
+
+**Support**
+
+Use support needs in kindergarten to plan extra attention in group 3.
+:::
+::::
+
+::: {.notes}
+```{r}
+#| output: asis
+notes("recommendations_overview")
+```
+:::
+
+## Our results have some limitations
+
+:::: {.cards .cards-3}
+::: {.card}
+**Small sample**
+
+`r num$n_reached` pupils reached group 3 and `r num$n_cito` have Cito results, so only larger
+differences can be found.
+:::
+
+::: {.card}
+**Time and age**
+
+Time in kindergarten and age move together, so we cannot separate them.
+:::
+
+::: {.card}
+**Moving up early or late**
+
+The school decided which children moved up earlier or later, which may affect the results.
+:::
+
+::: {.card}
+**Teacher observations**
+
+Readiness scores come from each class's own teachers.
+:::
+
+::: {.card}
+**Associations only**
+
+We can show which things go together, but we cannot say what causes what.
+:::
+::::
+
+## Early skills and support needs say more about group 3 results than time in kindergarten {.closing background-color="#F6A70A"}
