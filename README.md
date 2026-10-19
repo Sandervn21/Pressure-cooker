@@ -21,6 +21,7 @@ extracurricular activities in groups 1–2 relate to results in group 3 and late
    - `Support interventions_care team.xlsx`
    - `CLASS.xlsx`
    - `pupil questionnaire.xlsx` (optional; without it the well-being columns stay empty)
+   - `UvA_testresults_math.xlsx` (optional; used to confirm when group 3 started)
 
 ## Run
 
