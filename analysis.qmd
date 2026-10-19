@@ -23,6 +23,7 @@ source("R/load_data.R")
 source("R/cleanup.R")
 source("R/pupil_table.R")
 source("R/direct_path.R")
+source("R/stage1.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
 source("R/q2_analysis.R")
@@ -336,6 +337,81 @@ achievers, so this shows whether they are concentrated among pupils with short k
 
 ```{r}
 show_table(direct_equity)
+```
+
+# Readiness at the end of kindergarten (Q1 and Q2)
+
+Which groups 1-2 factors go with how many goals a pupil has reached when group 3 starts?
+Time in kindergarten answers the first part of Q1 (does more time mean more goals reached?);
+the kindergarten class is the closest the data gets to the teaching focus in Q2.
+
+::: {.callout-note collapse="true" title="How these tables were made"}
+**Pupils.** Pupils who reached group 3, including those who started group 3 this school year
+(their kindergarten is complete), with observations before group 3. `n` is the number of pupils
+in each model.
+
+**Readiness** (see "Goals achieved before group 3" and `R/pupil_table.R`): for each goal the last
+observation before group 3. *Goals before group 3* and *basic goals*: share of the client's goals
+at score 2 or higher. *Maths, language, social-emotional, fine and gross motor*: mean of the last
+scores (0-3) of all goals in that subject. Most pupils are close to the maximum, so differences
+are small and the scale is compressed at the top.
+
+**Factors.**
+
+- *Time in kindergarten*, per 6 months. In this export that is the same as being 6 months older
+  at the start of group 3, and teachers' observation scores rise with age, so a positive
+  estimate is expected and does not show that the extra time itself helped.
+- *Class 1/2b vs 1/2a*: the class the pupil was observed in most. The classes differ in
+  teaching focus, but also in teacher and in which children were placed there, so a difference
+  cannot be attributed to the teaching focus alone.
+- *Lessons per kindergarten year*, per 5 lessons: distinct extracurricular lessons, divided by the
+  kindergarten school years the extracurricular file covers (from 2021/22).
+
+**Model.** For each readiness outcome, one linear regression with the three factors together
+and the leaving cohort as a control, so each estimate holds the other factors constant.
+
+**Overview table.** Each cell: the estimate in standard deviations of the outcome (0.2 is
+usually called small, 0.5 medium) with the 95% interval, `*` when p < .05. The full table below
+it gives the estimates in the outcome's own units.
+
+**Support during kindergarten** has its own model (support, time in kindergarten, class and
+cohort), on fewer pupils because the support file starts later. Children usually get support
+*because* they are behind, so a negative estimate shows who needed help, not that help lowered
+readiness.
+:::
+
+```{r}
+show_table(stage1_overview)
+```
+
+```{r}
+#| fig-width: 11
+#| fig-height: 4.5
+stage1_plot
+```
+
+```{r}
+show_table(stage1_table(stage1_main))
+```
+
+Support during kindergarten:
+
+```{r}
+show_table(stage1_table(stage1_support))
+```
+
+## Classroom quality of the kindergarten classes
+
+::: {.callout-note collapse="true" title="How this table was made"}
+CLASS observations (`CLASS.xlsx`) of the two kindergarten classes, averaged per school year
+(observations are assigned to a school year by their date or quarter). Domain totals are
+averages of the dimension scores on a 1-7 scale; `observations` is the number of CLASS
+observations behind each row. CLASS is recorded per class, not per pupil, so it is shown here
+next to the class comparison rather than used in the models.
+:::
+
+```{r}
+show_table(class_quality_kg_classes)
 ```
 
 # Q1 as first reported: time in kindergarten × extracurricular activities
