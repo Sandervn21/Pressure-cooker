@@ -13,6 +13,15 @@ raw_path <- function(file) {
 
 read_raw <- function(file) read_excel(raw_path(file))
 
+# Tables the analysis can do without: NULL (with a message) when the file is missing
+read_optional <- function(file) {
+  if (!file.exists(file.path(data_dir, file))) {
+    message("Optional data file not found, skipping: ", file.path(data_dir, file))
+    return(NULL)
+  }
+  read_raw(file)
+}
+
 # Stack every sheet that has the required columns, adding the sheet name as `sheet_column`.
 # Sheets differ in column types (e.g. Score as text in one, numbers in another), so they are
 # combined as text and the types are guessed again afterwards.
@@ -37,3 +46,4 @@ data_grade <- read_sheets("Cito_UvA_EN.xlsx", c("Grade", "Test", "Score", "Name"
 data_kids <- read_raw("Pupils.xlsx")
 data_intervention <- read_raw("Support interventions_care team.xlsx")
 data_CLASS <- read_raw("CLASS.xlsx")
+data_questionnaire <- read_optional("pupil questionnaire.xlsx")
