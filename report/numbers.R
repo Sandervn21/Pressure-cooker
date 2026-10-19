@@ -46,6 +46,6 @@ report_numbers <- function() {
   )
 }
 
-# Without the analysis (skeleton mode) every number shows as "…"
+# Without the analysis (use_analysis <- FALSE) every number shows as "…"
 placeholder_numbers <- function() structure(list(), class = "placeholder_numbers")
 `$.placeholder_numbers` <- function(x, name) "…"
