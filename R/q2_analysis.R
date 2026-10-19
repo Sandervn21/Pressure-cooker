@@ -1,3 +1,6 @@
+# Q2: which early learning goals relate to later CITO results?
+# Needs R/cleanup.R and R/q1_model.R to have been sourced.
+
 compute_cito_correlations <- function(score_level, grouping_columns) {
   
   matched <- learning_goals %>%
@@ -99,8 +102,6 @@ correlation_plot_vak <- correlations_vak %>%
   mutate(score_group = as.character(Vak)) %>%
   plot_cito_correlations("Correlations between Vak scores and CITO scores")
 
-print(correlation_plot_vak)
-
 # only show the strong correlations for domein
 
 strong_correlations_domein <- correlations_domein %>%
@@ -116,8 +117,6 @@ strong_correlations_domein <- correlations_domein %>%
     p_adjusted = signif(p_adjusted, 3),
     significant_BH = p_adjusted < 0.05
   )
-
-make_key <- function(x) tolower(trimws(gsub("\\s+", " ", as.character(x))))
 
 cito_gr3 <- data_grade %>%
   filter(trimws(as.character(Grade)) == "Grade 3") %>%
@@ -147,13 +146,7 @@ vak_scores <- learning_goals %>%
   ) %>%
   pivot_wider(names_from = predictor, values_from = mean_score)
 
-activity_counts <- activities_per_pupil
-if (!"name_key" %in% names(activity_counts)) {
-  activity_counts <- activity_counts %>% mutate(name_key = make_key(Student))
-} else {
-  activity_counts <- activity_counts %>% mutate(name_key = make_key(name_key))
-}
-activity_counts <- activity_counts %>% select(name_key, n_activities)
+activity_counts <- activities_per_pupil %>% select(name_key, n_activities)
 stopifnot(!anyDuplicated(activity_counts$name_key))
 
 pupil_predictors <- data_clean %>%
@@ -371,16 +364,15 @@ if (nrow(cv_predictions) > 0) {
     ungroup() %>%
     arrange(Test, model, rank)
   
-  print(rmse_results, n = Inf, width = Inf)
-  print(vak_relevance %>% filter(model == "readiness"), n = Inf, width = Inf)
-  View(rmse_results)
-  View(vak_relevance)
 } else {
   message("No tests fitted: inspect model_status and Grade/name matching.")
 }
 
-print(model_status, n = Inf, width = Inf)
-print(predictor_missingness, n = Inf, width = Inf)
+# Pupils per test, for plot captions
+n_pupils_label <- function(status) {
+  n <- unique(status$n_pupils[status$status == "Completed"])
+  paste(n, collapse = "/")
+}
 
 
 # Uses vak_relevance from the all-Vak analysis; no model refitting needed.
@@ -405,7 +397,7 @@ vak_order <- plot_data %>%
 plot_data <- plot_data %>%
   mutate(
     Vak = factor(Vak, levels = rev(vak_order)),
-    Test = factor(Test, levels = c("Mathematics", "Spelling – Non-verbs", "TMT"))
+    Test = factor(Test)
   )
 
 vak_plot <- ggplot(plot_data, aes(x = selection_pct, y = Vak)) +
@@ -433,7 +425,8 @@ vak_plot <- ggplot(plot_data, aes(x = selection_pct, y = Vak)) +
     x = "Percentage of cross-validation fits with a nonzero coefficient",
     y = NULL,
     caption = paste(
-      "18 pupils per test; 50 outer training fits per test (10 repetitions × 5 folds).",
+      paste0(n_pupils_label(model_status), " pupils per test; ", n_repeats * n_outer_folds,
+             " outer training fits per test (", n_repeats, " repetitions × ", n_outer_folds, " folds)."),
       "Not evaluable = no usable variation in any training fit; this does not indicate irrelevance.",
       "Selection frequency is exploratory, not statistical significance or predictive accuracy.",
       sep = "\n"
@@ -452,8 +445,7 @@ vak_plot <- ggplot(plot_data, aes(x = selection_pct, y = Vak)) +
     plot.margin = margin(15, 20, 15, 10)
   )
 
-print(vak_plot)
-
+# Hand-picked from the readiness results above: the 2 most-selected Vakken per test
 selected_vakken <- tribble(
   ~Test, ~Vak,
   "Mathematics", "Rekenen",
@@ -599,19 +591,13 @@ if (nrow(cv_predictions_top2) > 0) {
     mutate(predictor = coalesce(Vak, predictor)) %>%
     select(-Vak)
   
-  print(rmse_results_top2, n = Inf, width = Inf)
-  print(coefficient_results_top2, n = Inf, width = Inf)
-  View(rmse_results_top2)
 }
-
-print(selected_vakken %>% select(Test, Vak), n = Inf)
-print(model_status_top2, n = Inf, width = Inf)
 
 plot_data <- rmse_results_top2 %>%
   mutate(
     model = factor(model, levels = c("baseline", "time", "readiness", "context"),
                    labels = c("Baseline", "Time", "Readiness", "Context")),
-    Test = factor(Test, levels = c("Mathematics", "Spelling – Non-verbs", "TMT")),
+    Test = factor(Test),
     lower = pmax(0, mean_RMSE - sd_RMSE_across_repeats),
     upper = mean_RMSE + sd_RMSE_across_repeats,
     label = sprintf("%.1f", mean_RMSE)
@@ -635,7 +621,8 @@ performance_plot <- ggplot(plot_data, aes(x = model, y = mean_RMSE, color = mode
   scale_y_continuous(expand = expansion(mult = c(0.12, 0.22))) +
   labs(
     title = "Do early-readiness and context predictors improve CITO prediction?",
-    subtitle = "Mean held-out RMSE from five-fold cross-validation repeated 10 times; 18 pupils per test",
+    subtitle = paste0("Mean held-out RMSE from ", n_folds, "-fold cross-validation repeated ", n_repeats,
+                      " times; ", n_pupils_label(model_status_top2), " pupils per test"),
     x = NULL, y = "Cross-validated RMSE (lower is better)",
     caption = paste(
       "Points: mean RMSE. Error bars: ±1 SD across repetitions, not confidence intervals.",
@@ -657,7 +644,3 @@ performance_plot <- ggplot(plot_data, aes(x = model, y = mean_RMSE, color = mode
     panel.spacing = grid::unit(1.2, "lines"),
     plot.margin = margin(15, 15, 15, 10)
   )
-
-print(performance_plot)
-
-

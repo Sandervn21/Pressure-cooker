@@ -1,8 +1,7 @@
-library(readxl)
-library(tidyverse)
-library(dplyr)
-library(ggplot2)
+# Builds the pupil-level tables used by the Q1 and Q2 analyses.
+# Needs R/setup.R and R/load_data.R to have been sourced.
 
+# The 15 learning-goal codes Het Epos asked about specifically
 codes = c(
   "TG11.2_E2",
   "MK6.3_E1",
@@ -30,6 +29,7 @@ average_scores <- data_observatie %>%
     else
       mean(Score, na.rm = TRUE),
     n_scores = sum(!is.na(Score)),
+    .groups = "drop"
   )
 
 average_scores_subset <- data_observatie %>%
@@ -41,13 +41,10 @@ average_scores_subset <- data_observatie %>%
     else
       mean(Score, na.rm = TRUE),
     n_scores = sum(!is.na(Score)),
+    .groups = "drop"
   )
 
-View(average_scores)
-
-print(class(data_grade$Score))
-print(head(data_grade$Score, 20))
-
+# CITO scores come in as text with decimal commas
 data_grade <- data_grade %>%
   mutate(Score_original = Score, Score = suppressWarnings(as.numeric(gsub(
     ",", ".", trimws(as.character(Score)), fixed = TRUE
@@ -58,8 +55,6 @@ failed_conversion <- data_grade %>%
          is.na(Score)) %>%
   distinct(Score_original)
 
-print(failed_conversion, n = Inf)
-
 # Average score per kid, per CITO test result
 average_grades <- data_grade %>%
   group_by(Name, Test) %>%
@@ -68,10 +63,9 @@ average_grades <- data_grade %>%
       NA_real_
     else
       mean(Score, na.rm = TRUE),
-    n_scores = sum(!is.na(Score))
+    n_scores = sum(!is.na(Score)),
+    .groups = "drop"
   )
-
-View(average_grades)
 
 matched_data <- average_scores_subset %>%
   mutate(Leerling = trimws(Leerling)) %>%
@@ -160,10 +154,6 @@ grade_summary <- average_grades %>%
       NA_real_
   )
 
-print(score_summary, n = Inf, width = Inf)
-print(grade_summary, n = Inf, width = Inf)
-print(correlations, n = Inf, width = Inf)
-
 # plot
 plot_data <- correlations %>%
   mutate(label = ifelse(
@@ -199,8 +189,6 @@ correlation_plot <- ggplot(plot_data, aes(x = Test, y = Leerpadcode, fill = corr
   theme_minimal() +
   theme(panel.grid = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1))
-
-print(correlation_plot)
 
 data_clean <- data_kids %>%
   transmute(
@@ -405,12 +393,10 @@ data_CLASS_clean <- tidyr::crossing(kids_CLASS, Grade = 1:3) %>%
   ) %>%
   arrange(Name, Grade)
 
-print(
-  data_CLASS_prepared %>%
-    filter(is.na(assessment_date) | quarter_mismatch) %>%
-    select(Date, Quarter, assessment_date, expected_quarter),
-  n = Inf
-)
+# CLASS rows whose date is unparseable or disagrees with the Quarter column
+class_date_issues <- data_CLASS_prepared %>%
+  filter(is.na(assessment_date) | quarter_mismatch) %>%
+  select(Date, Quarter, assessment_date, expected_quarter)
 
 data_CLASS_clean <- data_CLASS_clean %>%
   filter(!is.na(grade_period_start), grade_period_start <= Sys.Date()) %>%
@@ -438,6 +424,8 @@ data_clean <- data_clean %>%
               distinct(),
             by = "Name") %>%
   relocate(kindergarten_months, .after = Date_of_birth)
+
+# Learning-goal scores per pupil at three levels: Vak, Domein, Leerpadcode
 scores_by_vak <- data_observatie %>%
   group_by(Leerling, Vak) %>%
   summarise(
