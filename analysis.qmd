@@ -28,6 +28,7 @@ source("R/explained_variance.R")
 source("R/conclusions.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
+source("R/cv_models.R")
 source("R/q2_analysis.R")
 
 # Tables longer than `collapse_after` rows are folded behind a "Show table" toggle
