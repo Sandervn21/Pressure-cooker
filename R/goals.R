@@ -72,7 +72,7 @@ domain_names <- c(
   KM = "fine motor skills",
   ZW = "swinging", KL = "climbing", BL = "balancing", OK = "inverting and rolling", HL = "running",
   SR = "jumping", MI = "aiming", JL = "juggling", TS = "tag games", SS = "rough-and-tumble play",
-  BM = "moving to music", SP = "gross-motor games"
+  BM = "moving to music", SP = "play"
 )
 # Subjects whose domains enter the models (the same subjects as readiness by subject)
 domain_subjects <- c("Rekenen", "Taal", "SEO", "Kleine motoriek", "Grote motoriek")
