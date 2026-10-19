@@ -618,7 +618,8 @@ In the explained-variance section, readiness at the end of kindergarten accounte
 `r paste0(sub(", end of group 3", "", filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$outcome), " ", fmt(filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$r2_share), collapse = ", ")`
 of the variance in group 3 Cito. Those shares describe the pupils the models were fitted on.
 This section checks how much of it holds for pupils a model has not seen, and looks inside the
-readiness block: which subjects, and which of the school's 15 goals before group 3, carry it.
+readiness block at three levels: which subjects, which learning domains within them, and which
+of the school's 15 goals before group 3 carry it.
 
 ::: {.callout-note collapse="true" title="How this section was made"}
 **Class check.** For maths readiness (scored by the teachers) and for each group 3 Cito test: the
@@ -629,20 +630,31 @@ the teachers score, which is why readiness is compared with classmates everywher
 **Models.** The cross-validated elastic net from the original Q2 analysis (`R/cv_models.R`):
 missing values filled with the training folds' median and features standardised inside each
 training split, the penalty chosen by an inner 5-fold split, 5 folds repeated 10 times (50 fits per
-model and test). Five models, each adding one block, the same blocks as in the explained-variance
+model and test). Six models, each adding one block, the same blocks as in the explained-variance
 section: *average only*; *cohort*; *+ kindergarten factors* (time, classroom, extracurricular,
 support); *+ readiness by subject* (maths, language, social-emotional, motor, compared with
-classmates); *+ readiness by goal* (the last score before group 3 on each of the 15 goals before
+classmates); *+ readiness by domain* (the learning domains of those subjects, see "Learning
+domains"); *+ readiness by goal* (the last score before group 3 on each of the 15 goals before
 group 3, minus the class average). The cohort model is an ordinary regression, the others the
 elastic net.
+
+**Learning domains.** The `Domein` column mixes short codes and full Dutch names for the same
+domains across school years, so the domain is taken from the goal code instead: the letters before
+its first digit (`TG7.3_E1` → `TG`). Names come from a list in `R/goals.R` built from the
+`Translations` sheet and the goal descriptions; the subject is the one most of the domain's
+observations are recorded under. A domain enters the models when it belongs to maths, language,
+social-emotional or motor development and is observed for at least half of the pupils who reached
+group 3. Its readiness is the mean of the last scores before group 3 over its goals, standardised
+within each kindergarten class.
 
 **Prediction table.** `mean_rmse`: prediction error for left-out pupils in Cito ability points;
 `predicted_r2`: share of the variance predicted for left-out pupils (0 = no better than the
 average, below 0 = worse), with the 10th-90th percentile over the 10 repeats; `in_sample_r2`: the
 R² of the same blocks in the explained-variance section, fitted on all pupils.
 
-**Selection.** For the model with all blocks, how often each feature has a non-zero coefficient
-across the 50 fits, and whether it is mostly positive when kept. Kept often means a stable
+**Selection.** For the domain model (subjects and domains) and for the model with all blocks
+(goals), how often each feature has a non-zero coefficient across the 50 fits, and whether it is
+mostly positive when kept. Kept often means a stable
 predictor; it is not a test of significance. Goals that almost every pupil masters vary little
 and are rarely kept, which does not make them unimportant.
 :::
@@ -665,18 +677,35 @@ goals_prediction_plot
 show_table(goals_prediction)
 ```
 
-## Subjects and goals that are kept
+## Learning domains
+
+Every value in the goal codes, by domain: its subject, number of goals, observations and pupils,
+the share of pupils who reached group 3 with the domain observed, and whether it enters the models.
+
+```{r}
+show_table(domain_overview, digits = 2)
+```
+
+## Subjects and domains that are kept
 
 ```{r}
 #| fig-width: 12
-#| fig-height: 7
+#| fig-height: 9
+goals_domain_plot
+```
+
+## Goals that are kept
+
+```{r}
+#| fig-width: 12
+#| fig-height: 6
 goals_selection_plot
 ```
 
 ```{r}
 goals_selection %>%
-  filter(model == "+ readiness by goal") %>%
-  select(Test, block, predictor, available_pct, selected_pct, mean_coefficient, positive_when_selected_pct) %>%
+  filter(model %in% c("+ readiness by domain", "+ readiness by goal")) %>%
+  select(Test, model, block, predictor, available_pct, selected_pct, mean_coefficient, positive_when_selected_pct) %>%
   show_table()
 ```
 
