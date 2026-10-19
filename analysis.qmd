@@ -25,10 +25,11 @@ source("R/pupil_table.R")
 source("R/direct_path.R")
 source("R/stage1.R")
 source("R/explained_variance.R")
+source("R/cv_models.R")
+source("R/goals.R")
 source("R/conclusions.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
-source("R/cv_models.R")
 source("R/q2_analysis.R")
 
 # Tables longer than `collapse_after` rows are folded behind a "Show table" toggle
@@ -611,6 +612,82 @@ cat(conclusion_variance())
 ```
 :::
 
+# Which goals matter? (Q2)
+
+In the explained-variance section, readiness at the end of kindergarten accounted for
+`r paste0(sub(", end of group 3", "", filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$outcome), " ", fmt(filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$r2_share), collapse = ", ")`
+of the variance in group 3 Cito. Those shares describe the pupils the models were fitted on.
+This section checks how much of it holds for pupils a model has not seen, and looks inside the
+readiness block: which subjects, and which of the school's 15 goals before group 3, carry it.
+
+::: {.callout-note collapse="true" title="How this section was made"}
+**Class check.** For maths readiness (scored by the teachers) and for each group 3 Cito test: the
+difference between class 1/2b and 1/2a in standard deviations, with the leaving cohort as a
+control. If the classes differ on readiness but not on Cito, the readiness difference is in how
+the teachers score, which is why readiness is compared with classmates everywhere else.
+
+**Models.** The cross-validated elastic net from the original Q2 analysis (`R/cv_models.R`):
+missing values filled with the training folds' median and features standardised inside each
+training split, the penalty chosen by an inner 5-fold split, 5 folds repeated 10 times (50 fits per
+model and test). Five models, each adding one block, the same blocks as in the explained-variance
+section: *average only*; *cohort*; *+ kindergarten factors* (time, classroom, extracurricular,
+support); *+ readiness by subject* (maths, language, social-emotional, motor, compared with
+classmates); *+ readiness by goal* (the last score before group 3 on each of the 15 goals before
+group 3, minus the class average). The cohort model is an ordinary regression, the others the
+elastic net.
+
+**Prediction table.** `mean_rmse`: prediction error for left-out pupils in Cito ability points;
+`predicted_r2`: share of the variance predicted for left-out pupils (0 = no better than the
+average, below 0 = worse), with the 10th-90th percentile over the 10 repeats; `in_sample_r2`: the
+R² of the same blocks in the explained-variance section, fitted on all pupils.
+
+**Selection.** For the model with all blocks, how often each feature has a non-zero coefficient
+across the 50 fits, and whether it is mostly positive when kept. Kept often means a stable
+predictor; it is not a test of significance. Goals that almost every pupil masters vary little
+and are rarely kept, which does not make them unimportant.
+:::
+
+## Class check
+
+```{r}
+show_table(class_cito_check)
+```
+
+## Prediction for new pupils
+
+```{r}
+#| fig-width: 11
+#| fig-height: 4
+goals_prediction_plot
+```
+
+```{r}
+show_table(goals_prediction)
+```
+
+## Subjects and goals that are kept
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+goals_selection_plot
+```
+
+```{r}
+goals_selection %>%
+  filter(model == "+ readiness by goal") %>%
+  select(Test, block, predictor, available_pct, selected_pct, mean_coefficient, positive_when_selected_pct) %>%
+  show_table()
+```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_goals_q2())
+```
+:::
+
 # Q1 as first reported: time in kindergarten × extracurricular activities
 
 Development is the average z-score across learning goals per pupil.
@@ -701,76 +778,23 @@ cat(conclusion_q1_reported())
 ```
 :::
 
-# Q2: learning goals and CITO results
+# Q2 as first reported
 
-## Correlations
+The first Q2 analysis (`R/q2_analysis.R`) predicted group 3 Cito from observation scores per
+subject with the cross-validated elastic net, and picked two subjects per test for simpler
+models. The "Which goals matter?" section above reuses the same elastic net, with corrected inputs:
 
-::: {.callout-note collapse="true" title="How these figures and the table were made"}
-**Learning goals.** For every pupil, all observations are averaged per goal (first figure: the
-15 goals the school named), per subject (`Vak`, second figure) or per domain (`Domein`, table).
+- observation scores as the **last score before group 3**, compared with classmates, instead of the
+  average of all observations at any age;
+- **months until group 3 started** instead of `kindergarten_months` (see the robustness section);
+- support **during kindergarten** instead of support records from all years, which included
+  support given after the outcome;
+- the **end-of-group-3 Cito ability score** instead of the average of mid and end scores.
 
-**Cito.** For every pupil, all scores on a test are averaged over every grade and moment.
+It also originally read only the first Cito sheet (one cohort, 18 pupils per test); that is
+fixed for both analyses.
 
-**Correlation.** Pearson correlation across pupils, matched by name. Cells with fewer than 3
-pupils or no variation are empty (NA). P-values are adjusted for the number of correlations
-tested (Benjamini-Hochberg); `*` marks an adjusted p below .05. The domain table only lists
-correlations above 0.7 or below -0.7.
-:::
-
-Correlations between the 15 learning-goal codes the school named and CITO scores (BH-adjusted):
-
-```{r}
-#| fig-width: 9
-#| fig-height: 8
-correlation_plot
-```
-
-Per Vak:
-
-```{r}
-#| fig-width: 9
-#| fig-height: 7
-correlation_plot_vak
-```
-
-Per Domein, only |r| > 0.7:
-
-```{r}
-show_table(strong_correlations_domein)
-```
-
-## Which Vakken predict group 3 CITO? (elastic net)
-
-::: {.callout-note collapse="true" title="How these tables were made"}
-**Outcome.** For each Cito test with grade 3 results: a pupil's grade 3 score (mid and end of
-year averaged), in Cito score points. Tests with fewer than 10 pupils are skipped
-(`model_status`).
-
-**Predictors.** `kindergarten_months` (see Q1); per subject (`Vak`), the pupil's average
-observation score over all observations; number of activities; number of support records
-(all years).
-
-**Four models per test.** `baseline`: predicts the average score; `time`: linear regression on
-kindergarten months; `readiness`: elastic net on kindergarten months and all subjects; `context`:
-readiness plus activities and support.
-
-**Cross-validation.** Pupils are split into 5 folds, repeated 10 times. Each model is fitted on 4
-folds and predicts the fifth. Missing predictor values are filled with the training folds'
-median, and predictors are standardised, inside each training split. The elastic-net penalty
-is tuned by a second 5-fold split within the training folds.
-
-**`rmse_results`.** `mean_RMSE`: average prediction error in Cito score points (lower is
-better); `sd_RMSE_across_repeats`: spread over the 10 repeats; `improvement_over_baseline`:
-how much lower the error is than the baseline's; `rank`: order within the test.
-
-**Subject table.** For the readiness model, per test and subject: `availability_pct`: share of
-the 50 fits in which the subject had usable values; `selection_pct`: share of fits with a
-non-zero coefficient; the mean (absolute) standardised coefficient; the share of positive
-coefficients when selected; `proportion_missing`: share of pupils without that subject.
-
-**Missing predictors.** Per test and predictor, the share of pupils in the model without a value.
-:::
-
+::: {.callout-note collapse="true" title="Original results (all subjects, elastic net)"}
 ```{r}
 show_table(model_status)
 show_table(rmse_results)
@@ -781,54 +805,4 @@ show_table(rmse_results)
 #| fig-height: 7
 vak_plot
 ```
-
-```{r}
-vak_relevance |>
-  filter(model == "readiness") |>
-  show_table()
-```
-
-Missing predictors per test:
-
-```{r}
-show_table(predictor_missingness)
-```
-
-## Baseline, time, readiness and context models
-
-::: {.callout-note collapse="true" title="How these tables were made"}
-**Subjects.** Two subjects per test, picked by hand from an earlier run of the elastic net above
-(`selected_vakken`). They were chosen on the same pupils, so the results below are optimistic.
-
-**Models.** The same four models as above, but as ordinary linear regressions with only the
-two subjects: `baseline` (average), `time` (kindergarten months), `readiness` (kindergarten
-months + the two subjects), `context` (readiness + activities and support records).
-
-**Cross-validation.** 5 folds repeated 10 times, the same folds for all four models; missing
-values filled with the training folds' median. Tests are skipped when the training folds have
-too few pupils for the context model (`model_status_top2`).
-
-**`rmse_results_top2`.** As above: prediction error in Cito score points per model and test.
-
-**Coefficients.** Each model refitted on all pupils of a test (missing values filled with the
-median). `estimate` is in Cito score points per unit of the predictor (per month, per point of
-average observation score, per activity, per support record).
 :::
-
-```{r}
-selected_vakken |>
-  select(Test, Vak) |>
-  show_table()
-show_table(model_status_top2)
-show_table(rmse_results_top2)
-```
-
-```{r}
-#| fig-width: 11
-#| fig-height: 6
-performance_plot
-```
-
-```{r}
-show_table(coefficient_results_top2)
-```
