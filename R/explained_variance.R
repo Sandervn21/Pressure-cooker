@@ -346,7 +346,7 @@ ev_variance_plot <- ev_variance_table %>%
   ) %>%
   ggplot(aes(r2_share, outcome, colour = block)) +
   geom_vline(xintercept = 0, colour = "grey70") +
-  geom_point(aes(x = noise_level), shape = 124, size = 4, colour = "grey40", position = position_dodge(width = 0.7)) +
+  geom_point(aes(x = noise_level, group = block), shape = 124, size = 4, colour = "grey40", position = position_dodge(width = 0.7)) +
   geom_errorbar(aes(xmin = r2_share_low, xmax = r2_share_high), width = 0.25, orientation = "y",
                 position = position_dodge(width = 0.7)) +
   geom_point(size = 2, position = position_dodge(width = 0.7)) +
