@@ -47,10 +47,12 @@ which hold the notebook's full conclusion behind each slide.
 
 | Path | Contents |
 | --- | --- |
-| `R/setup.R` | Packages and shared helpers |
-| `R/load_data.R` | Reads the Excel files from `data/` |
-| `R/cleanup.R` | Builds pupil-level tables (learning goals, CITO, interventions, CLASS, time in kindergarten) |
-| `R/q1_model.R`, `R/q1_robustness.R` | First version of Q1 (kindergarten time × extracurricular activities) and its checks; not used in the notebook |
-| `R/q2_analysis.R` | First version of Q2 (learning goals vs CITO); not used in the notebook, chapter 5 reuses its model in `R/cv_models.R` |
+| `R/setup.R`, `R/load_data.R` | Packages, and reading the Excel files from `data/` |
+| `R/cleanup.R` | Cleans Cito scores, support records and CLASS observations |
+| `R/pupil_table.R` | The pupil table: group 3 timing, time in kindergarten, readiness, outcomes |
+| `R/direct_path.R`, `R/stage1.R` | Chapters 2 and 3: time in kindergarten against group 3 and readiness |
+| `R/explained_variance.R` | Chapter 4: all kindergarten factors together and their explained variance |
+| `R/cv_models.R`, `R/goals.R` | Chapter 5: cross-validated models for subjects, learning domains and goals |
+| `R/conclusions.R` | The conclusion boxes, written from the results |
 | `analysis.qmd` | Notebook that runs the scripts in order and shows the results |
-| `report.qmd`, `report/` | The report slides: storyline, figures and theme |
+| `report.qmd`, `report/` | The report slides, their numbers, figures and theme |

@@ -163,7 +163,7 @@ source, in this order:
    (`r export_school_year`/`r export_school_year + 1`): a pupil now in group *g* started
    group 3 *g* − 3 years ago. This is the only source for pupils who just started group 3.
 
-A pilot on the real data compared these sources, and also the leaving cohort and the last
+We compared these sources on the real data, together with the leaving cohort and the last
 kindergarten observation: wherever two dated sources (1-3) overlap they give the same year for
 every pupil. Counting back (4) and the Cito leaving year are a year behind for a handful of
 pupils; those pupils most likely **repeated a year after group 3** and are counted in the last
