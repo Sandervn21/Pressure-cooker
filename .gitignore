@@ -20,3 +20,5 @@ analysis_files/
 /report.html
 /report.pdf
 /report_files/
+
+**/*.quarto_ipynb
