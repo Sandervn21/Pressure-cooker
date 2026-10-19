@@ -183,10 +183,14 @@ conclusion_goals_q2 <- function() {
     paste0(
       sub_test(test), ": kindergarten factors ", fmt(get(test, "+ kindergarten factors")),
       ", with readiness by subject ", fmt(get(test, "+ readiness by subject")),
-      " (in-sample ", fmt(get(test, "+ readiness by subject", "in_sample_r2")), "), with the goals ",
-      fmt(get(test, "+ readiness by goal"))
+      " (in-sample ", fmt(get(test, "+ readiness by subject", "in_sample_r2")), "), with domains ",
+      fmt(get(test, "+ readiness by domain")), ", with the goals ", fmt(get(test, "+ readiness by goal"))
     )
   })
+  kept_domains <- goals_selection %>%
+    filter(model == "+ readiness by domain", block %in% c("Readiness", "Readiness by domain"), selected_pct >= 70) %>%
+    group_by(Test) %>%
+    summarise(txt = and_list(paste0(predictor, " (", fmt(selected_pct, 0), "%)")), .groups = "drop")
   kept <- goals_selection %>%
     filter(model == "+ readiness by goal", selected_pct >= 70) %>%
     group_by(Test) %>%
@@ -203,7 +207,11 @@ conclusion_goals_q2 <- function() {
       ". The in-sample shares of the explained-variance section are higher, as expected with this many features and pupils."
     ),
     paste0(
-      "Kept in at least 70% of the fits: ",
+      "Subjects and domains kept in at least 70% of the fits (domain model): ",
+      if (nrow(kept_domains) == 0) "none" else paste0(sub_test(kept_domains$Test), ": ", kept_domains$txt, collapse = "; "), "."
+    ),
+    paste0(
+      "Kept in at least 70% of the fits with all blocks: ",
       if (nrow(kept) == 0) "nothing" else paste0(sub_test(kept$Test), ": ", kept$txt, collapse = "; "), "."
     ),
     paste0(

@@ -60,12 +60,88 @@ goal_scores <- last_obs %>%
   pivot_wider(id_cols = name_key, names_from = code, values_from = score)
 goal_columns <- intersect(paste0("goal_", names(transition_goal_labels)), names(goal_scores))
 
+# --- Domain-level readiness: domain = letters before the first digit of the goal code ----------
+# (the Domein column mixes codes and full names across school years, the goal code does not)
+
+domain_names <- c(
+  TG = "counting and numbers", MT = "measurement", MK = "geometry",
+  AO = "auditory development", VO = "visual development",
+  BV = "book orientation and story comprehension", IT = "interactive language use",
+  SA = "social autonomy", SF = "social flexibility", SI = "social initiative", IB = "impulse control",
+  IV = "empathy", WB = "well-being", BT = "engagement", TZ = "task focus and independence",
+  KM = "fine motor skills",
+  ZW = "swinging", KL = "climbing", BL = "balancing", OK = "inverting and rolling", HL = "running",
+  SR = "jumping", MI = "aiming", JL = "juggling", TS = "tag games", SS = "rough-and-tumble play",
+  BM = "moving to music", SP = "gross-motor games"
+)
+# Subjects whose domains enter the models (the same subjects as readiness by subject)
+domain_subjects <- c("Rekenen", "Taal", "SEO", "Kleine motoriek", "Grote motoriek")
+domain_min_coverage <- 0.5 # share of pupils who reached group 3 with the domain observed
+
+goal_domain <- function(code) str_extract(as.character(code), "^[A-Z]+(?=[0-9])")
+
+domain_kind <- function(code) {
+  code <- as.character(code)
+  case_when(
+    !is.na(goal_domain(code)) ~ goal_domain(code),
+    str_detect(code, "^[A-Z]+_[0-9]+_") ~ "(code with a level, e.g. BV_100_JA1)",
+    str_detect(code, "^[0-9A-F]{6}$") ~ "(number-only code)",
+    TRUE ~ "(not a goal code)"
+  )
+}
+
+domain_pupils_reached <- last_obs %>%
+  semi_join(ev_data, by = "name_key") %>%
+  mutate(domain = goal_domain(code)) %>%
+  filter(!is.na(domain)) %>%
+  group_by(domain) %>%
+  summarise(share_reached_with_domain = n_distinct(name_key) / nrow(ev_data), .groups = "drop")
+
+domain_overview <- data_observatie %>%
+  transmute(name_key = make_key(Leerling), code = as.character(Leerpadcode), vak = as.character(Vak)) %>%
+  mutate(domain = domain_kind(code)) %>%
+  group_by(domain) %>%
+  summarise(
+    subject = names(sort(table(vak), decreasing = TRUE))[1],
+    goals = n_distinct(code),
+    observations = n(),
+    pupils = n_distinct(name_key),
+    .groups = "drop"
+  ) %>%
+  left_join(domain_pupils_reached, by = "domain") %>%
+  mutate(
+    name = coalesce(unname(domain_names[domain]), if_else(str_starts(domain, "\\("), "", "(no name known)")),
+    share_reached_with_domain = coalesce(share_reached_with_domain, 0),
+    in_models = subject %in% domain_subjects & !str_starts(domain, "\\(") &
+      share_reached_with_domain >= domain_min_coverage
+  ) %>%
+  arrange(desc(in_models), subject, desc(observations)) %>%
+  select(domain, name, subject, goals, observations, pupils, share_reached_with_domain, in_models)
+
+model_domains <- domain_overview$domain[domain_overview$in_models]
+
+# Mean of the last scores before group 3 per domain, standardised within each class
+domain_scores <- last_obs %>%
+  mutate(domain = goal_domain(code)) %>%
+  filter(domain %in% model_domains) %>%
+  select(name_key, domain, score) %>%
+  inner_join(select(ev_data, name_key, kg_class), by = "name_key") %>%
+  group_by(name_key, kg_class, domain) %>%
+  summarise(level = mean(score), .groups = "drop") %>%
+  group_by(domain, kg_class) %>%
+  mutate(level = if (n() > 1 && sd(level) > 0) (level - mean(level)) / sd(level) else level - mean(level)) %>%
+  ungroup() %>%
+  mutate(domain = paste0("dom_", domain)) %>%
+  pivot_wider(id_cols = name_key, names_from = domain, values_from = level)
+domain_columns <- intersect(paste0("dom_", model_domains), names(domain_scores))
+
 # --- Model data: one row per pupil and Cito test -------------------------------------------
 
 cohort_dummies <- model.matrix(~cohort, ev_data)[, -1, drop = FALSE]
 colnames(cohort_dummies) <- sub("^cohort", "cohort_", colnames(cohort_dummies))
 
 goals_base <- bind_cols(ev_data, as_tibble(cohort_dummies)) %>%
+  left_join(domain_scores, by = "name_key", relationship = "one-to-one") %>%
   left_join(goal_scores, by = "name_key", relationship = "one-to-one")
 
 goals_model_data <- imap(goals_cito_tests, function(label, col) {
@@ -85,13 +161,14 @@ goals_models <- list(
   cohort = cohort_columns,
   `+ kindergarten factors` = c(cohort_columns, kg_factor_columns),
   `+ readiness by subject` = c(cohort_columns, kg_factor_columns, subject_columns),
-  `+ readiness by goal` = c(cohort_columns, kg_factor_columns, subject_columns, goal_columns)
+  `+ readiness by domain` = c(cohort_columns, kg_factor_columns, subject_columns, domain_columns),
+  `+ readiness by goal` = c(cohort_columns, kg_factor_columns, subject_columns, domain_columns, goal_columns)
 )
 
 set.seed(20261019)
 goals_cv <- run_cv(
   goals_model_data, unname(goals_cito_tests), goals_models,
-  lm_models = "cohort", coef_models = c("+ readiness by subject", "+ readiness by goal"),
+  lm_models = "cohort", coef_models = c("+ readiness by subject", "+ readiness by domain", "+ readiness by goal"),
   n_repeats = 10L, n_outer_folds = 5L
 )
 
@@ -154,6 +231,9 @@ predictor_label <- function(x) {
   case_when(
     x %in% names(ev_feature_labels) ~ unname(ev_feature_labels[x]),
     str_starts(x, "goal_") ~ paste0("goal: ", unname(transition_goal_labels[goal]), " (", goal, ")"),
+    str_starts(x, "dom_") & sub("^dom_", "", x) %in% names(domain_names) ~
+      paste0("domain: ", unname(domain_names[sub("^dom_", "", x)]), " (", sub("^dom_", "", x), ")"),
+    str_starts(x, "dom_") ~ paste0("domain: ", sub("^dom_", "", x)),
     str_starts(x, "cohort_") ~ paste0("leaving year ", sub("cohort_", "", x)),
     TRUE ~ x
   )
@@ -161,6 +241,7 @@ predictor_label <- function(x) {
 predictor_block <- function(x) {
   case_when(
     str_starts(x, "goal_") ~ "Readiness by goal",
+    str_starts(x, "dom_") ~ "Readiness by domain",
     x %in% names(ev_feature_block) ~ unname(ev_feature_block[x]),
     TRUE ~ "Cohort"
   )
@@ -179,22 +260,27 @@ goals_selection <- goals_cv$coefficients %>%
   filter(block != "Cohort") %>%
   arrange(match(Test, goals_cito_tests), model, desc(selected_pct))
 
-goals_selection_plot <- goals_selection %>%
-  filter(model == "+ readiness by goal", block %in% c("Readiness", "Readiness by goal", "Time")) %>%
-  mutate(
-    Test = factor(Test, levels = goals_cito_tests),
-    predictor = fct_reorder(predictor, selected_pct, .fun = mean),
-    direction = case_when(
-      is.na(positive_when_selected_pct) ~ "never kept",
-      positive_when_selected_pct >= 50 ~ "mostly positive",
-      TRUE ~ "mostly negative"
-    )
-  ) %>%
-  ggplot(aes(selected_pct, predictor, fill = direction)) +
-  geom_col(width = 0.7) +
-  facet_wrap(~Test, nrow = 1) +
-  scale_fill_manual(values = c("mostly positive" = "#0072B2", "mostly negative" = "#D55E00", "never kept" = "grey80")) +
-  scale_x_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) +
-  labs(x = "Share of the 50 fits that keep the predictor", y = NULL, fill = NULL) +
-  theme_minimal(base_size = 10) +
-  theme(legend.position = "bottom")
+selection_plot <- function(model_name, blocks) {
+  goals_selection %>%
+    filter(model == model_name, block %in% blocks) %>%
+    mutate(
+      Test = factor(Test, levels = goals_cito_tests),
+      predictor = fct_reorder(predictor, selected_pct, .fun = mean),
+      direction = case_when(
+        is.na(positive_when_selected_pct) ~ "never kept",
+        positive_when_selected_pct >= 50 ~ "mostly positive",
+        TRUE ~ "mostly negative"
+      )
+    ) %>%
+    ggplot(aes(selected_pct, predictor, fill = direction)) +
+    geom_col(width = 0.7) +
+    facet_wrap(~Test, nrow = 1) +
+    scale_fill_manual(values = c("mostly positive" = "#0072B2", "mostly negative" = "#D55E00", "never kept" = "grey80")) +
+    scale_x_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) +
+    labs(x = "Share of the 50 fits that keep the predictor", y = NULL, fill = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "bottom")
+}
+
+goals_domain_plot <- selection_plot("+ readiness by domain", c("Readiness", "Readiness by domain", "Time"))
+goals_selection_plot <- selection_plot("+ readiness by goal", c("Readiness by goal", "Time"))
