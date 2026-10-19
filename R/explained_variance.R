@@ -8,25 +8,74 @@ ev_noise_reps <- 300 # shuffles of the outcome for each block's share by chance 
 
 # --- Lesson categories ----------------------------------------------------------------------
 
-# Keyword rules on the lesson name (English and Dutch); the first matching category wins
+# Lesson names seen in the export, by kind; names not listed fall back on keyword rules
+lesson_kinds <- c(
+  sport = "Sport & movement", arts_culture = "Arts & culture", technology_science = "Technology, science & strategy",
+  language_numbers = "Language & numbers", life_skills_play = "Life skills & play"
+)
+lesson_map <- list(
+  sport = c(
+    "Football", "Multi-sport", "Korfball", "Yoga", "Judo", "Street Dance", "Circus", "Self-defence",
+    "Outdoor Sports", "Tiger Boxing", "Climbing and Scrambling", "Capoeira", "Handball and Other Ball Sports",
+    "Dance", "Hockey", "Taekwondo", "Breakdance", "Handball", "Girls' Football", "Just Dance", "Basketball",
+    "Physical Activity", "BeeBall", "Kidsfit", "Sports and Games", "Gamegym"
+  ),
+  arts_culture = c(
+    "Drama", "Fashion and Design", "Music", "Art Workshop", "Art", "Ebru Art", "Singing and Music",
+    "Drawing Comics", "Art and Creation", "Craft Studio", "Ceramics", "Children's Choir", "Drawing", "Painting",
+    "Art Appreciation", "Music and Theatre", "Photography", "Artists", "Craft Party", "Creativity and Art",
+    "Waste and Art", "Creative Drawing", "Creative Drawing and Play", "Puppet Theatre", "Movement and Drumming",
+    "Theatre", "Sustainable Fashion Class", "Arts and Crafts", "DJ", "Musical", "Singing and Dance",
+    "Dance and Theatre", "Upcycle Your Toys", "Art Lab", "Video Game Music", "Graffiti", "Jewellery Making",
+    "Fuse Beads", "Creative Class"
+  ),
+  technology_science = c(
+    "Plants and Gardening", "Chess", "Technology", "Technical LEGO", "Science", "Gardening Lessons",
+    "Nature and the Environment", "Nature", "Media and ICT", "Chemical Chaos", "Machine Builders",
+    "Working with Sustainable Energy", "Making a Podcast", "Draughts"
+  ),
+  language_numbers = c(
+    "English", "Arabic Lessons", "Beginner Arabic Lessons", "Advanced Arabic Lessons", "Reading for Pleasure",
+    "Making a School Newspaper", "Reading Aloud", "A Treasure Trove of Words", "Rhyming", "Stories",
+    "Playing with Numbers", "Managing Money", "Money", "Homework Support and Physical Activity"
+  ),
+  life_skills_play = c(
+    "Cooking", "High Tea", "Taste Lessons", "Mental Resilience", "Rock and Water", "Pirate Club", "Outdoor Play",
+    "Play and Fun", "Learning through Play", "Free-choice Lesson", "Games"
+  )
+)
+lesson_lookup <- set_names(rep(names(lesson_map), lengths(lesson_map)), tolower(unlist(lesson_map)))
+
+# Fallback for names not in the list (English and Dutch); the first matching kind wins
 lesson_rules <- c(
-  language = "english|engels|spanish|spaans|turkish|turks|arabic|arabisch|reading|lezen|lees|debat|writing|schrij|book|boek|newspaper|krant|story|verhaal|language|taal|poetry|spoken",
-  technology_science = "coding|program|robot|lego|minecraft|3d|science|wetenschap|electron|game|animation|lab|space|techn|nature|natuur|garden|tuin|math|reken|chess|schaak|onderzoek",
-  sport = "football|voetbal|soccer|basket|judo|kickbox|box|gym|turn|swim|zwem|athlet|atletiek|tennis|hockey|korfbal|yoga|climb|klim|skate|schaats|volley|badminton|freerun|capoeira|karate|taekwondo|rugby|handbal|baseball|honkbal|cycl|fiets|padel|golf|archery|fenc|frisbee|floorball|polo|triathlon|movers|sport|fitness|run|bewegen|self-defen|zelfverdediging|dance|dans|ballet|circus",
-  arts_culture = "drama|theat|toneel|choir|koor|music|muziek|guitar|gitaar|piano|drum|violin|viool|art|kunst|paint|schilder|draw|teken|ceramic|keramiek|photo|foto|film|fashion|mode|craft|knutsel|cook|kook|bak|rap|dj|musical|percussion|ukulele|stop motion|comic|strip|clay|klei|wood|hout|sew|naai|sing|zang|puppet|poppen|magic|goochel|chef"
+  language_numbers = "english|engels|spanish|spaans|turkish|turks|arabic|arabisch|reading|lezen|lees|debat|writing|schrij|book|boek|newspaper|krant|story|stories|verhaal|language|taal|poetry|spoken|number|getal|reken|money|geld|homework|huiswerk",
+  life_skills_play = "cook|kook|bak|tea|taste|proef|resilien|weerbaar|play|spel|pirate",
+  technology_science = "coding|program|robot|lego|minecraft|3d|science|wetenschap|electron|animation|techn|nature|natuur|garden|tuin|chess|schaak|dam|ict|media|podcast|energy|energie|machine|chemi",
+  arts_culture = "drama|theat|toneel|choir|koor|sing|zang|music|muziek|guitar|gitaar|piano|drum|violin|viool|art|kunst|paint|schilder|draw|teken|ceramic|keramiek|photo|foto|film|fashion|mode|craft|knutsel|rap|dj|musical|percussion|ukulele|comic|strip|clay|klei|wood|hout|sew|naai|puppet|poppen|magic|goochel|graffiti|bead|jewel|upcycl|creativ",
+  sport = "football|voetbal|soccer|basket|judo|kickbox|box|gym|turn|swim|zwem|athlet|atletiek|tennis|hockey|korfbal|yoga|climb|klim|skate|schaats|volley|badminton|freerun|capoeira|karate|taekwondo|rugby|handbal|baseball|honkbal|cycling|fiets|padel|golf|archery|fenc|frisbee|floorball|polo|triathlon|movers|sport|fitness|run|bewegen|physical|self-defen|zelfverdediging|dance|dans|ballet|circus|ball|fit"
 )
 
 lesson_category <- function(lesson) {
-  x <- tolower(as.character(lesson))
-  out <- rep("other", length(x))
-  for (cat in rev(names(lesson_rules))) out[str_detect(x, lesson_rules[[cat]])] <- cat
+  x <- str_squish(tolower(as.character(lesson)))
+  out <- unname(lesson_lookup[x])
+  for (cat in names(lesson_rules)) {
+    hit <- is.na(out) & str_detect(x, lesson_rules[[cat]])
+    hit[is.na(hit)] <- FALSE
+    out[hit] <- cat
+  }
+  out[is.na(out)] <- "other"
   out
 }
 
 lesson_categories <- data_extra %>%
   count(lesson = as.character(Lesson), name = "rows") %>%
-  mutate(category = lesson_category(lesson)) %>%
-  arrange(category, desc(rows))
+  mutate(
+    category = lesson_category(lesson),
+    kind = coalesce(unname(lesson_kinds[category]), "Other"),
+    assigned_by = if_else(str_squish(tolower(lesson)) %in% names(lesson_lookup), "list", "keywords")
+  ) %>%
+  arrange(kind, desc(rows)) %>%
+  select(lesson, rows, kind, assigned_by)
 
 # Distinct lessons per kindergarten year, per category
 lessons_kg_by_category <- kg_years %>%
@@ -38,10 +87,10 @@ lessons_kg_by_category <- kg_years %>%
   mutate(category = if_else(is.na(lesson), NA_character_, lesson_category(lesson))) %>%
   group_by(name_key, kg_years_with_lesson_data) %>%
   summarise(
-    across_cats = list(map_dbl(names(lesson_rules), function(cat) n_distinct(lesson[category %in% cat]))),
+    across_cats = list(map_dbl(names(lesson_kinds), function(cat) n_distinct(lesson[category %in% cat]))),
     .groups = "drop"
   ) %>%
-  mutate(across_cats = map(across_cats, ~ set_names(as.list(.x), paste0("lessons_", names(lesson_rules))))) %>%
+  mutate(across_cats = map(across_cats, ~ set_names(as.list(.x), paste0("lessons_", names(lesson_kinds))))) %>%
   unnest_wider(across_cats) %>%
   mutate(across(starts_with("lessons_"), ~ .x / kg_years_with_lesson_data)) %>%
   select(-kg_years_with_lesson_data)
@@ -87,7 +136,10 @@ ev_data <- pupils_table %>%
   left_join(support_kg_by_kind, by = "name_key", relationship = "one-to-one") %>%
   mutate(
     class_1_2b = as.numeric(kg_class == "1/2b"),
-    support_no_data = as.numeric(is.na(support_language)),
+    # one CLASS total: the three domains are measured on the same class-years and nearly collinear
+    class_total_kg = (class_emotional_kg + class_organization_kg + class_instructional_kg) / 3,
+    # pupils whose kindergarten years the support file does not cover (the first cohorts) count
+    # as without support; the cohort control keeps that from looking like an effect
     across(c(support_language, support_learning, support_other), ~ coalesce(.x, 0)),
     across(starts_with("lessons_"), ~ coalesce(.x, 0)),
     # readiness compared with classmates: teachers in the two classes score differently
@@ -101,16 +153,13 @@ ev_blocks <- list(
   Time = c(`months in kindergarten` = "months_to_g3"),
   Classroom = c(
     `class 1/2b (vs 1/2a)` = "class_1_2b",
-    `CLASS instructional support` = "class_instructional_kg",
-    `CLASS emotional support` = "class_emotional_kg",
-    `CLASS classroom organization` = "class_organization_kg"
+    `CLASS total (average of the domains)` = "class_total_kg"
   ),
-  Extracurricular = set_names(paste0("lessons_", names(lesson_rules)), paste0("lessons: ", str_replace(names(lesson_rules), "_", " & "))),
+  Extracurricular = set_names(paste0("lessons_", names(lesson_kinds)), paste0("lessons: ", tolower(lesson_kinds))),
   Support = c(
     `support: language` = "support_language",
     `support: learning` = "support_learning",
-    `support: other` = "support_other",
-    `support: no data` = "support_no_data"
+    `support: other` = "support_other"
   ),
   Readiness = c(
     `readiness: maths` = "ready_maths_z",
@@ -133,7 +182,7 @@ ev_outcomes <- tribble(
 
 # --- Features against outcomes ---------------------------------------------------------------
 
-binary_features <- c("class_1_2b", "support_language", "support_learning", "support_other", "support_no_data")
+binary_features <- c("class_1_2b", "support_language", "support_learning", "support_other")
 
 ev_feature_plot <- function(outcome, outcome_label) {
   features <- unname(unlist(ev_blocks))

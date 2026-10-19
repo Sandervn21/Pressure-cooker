@@ -429,15 +429,17 @@ group 3 outcome (for Cito and support). `n` is shown per outcome.
 **Features, by block** (each block split into kinds where the data allows):
 
 - *Time*: months in kindergarten (in this export the same as age at group 3 − 4).
-- *Classroom*: kindergarten class (1/2b vs 1/2a), and the CLASS scores of that class
-  (instructional support, emotional support, classroom organization), averaged over the
-  pupil's kindergarten years.
-- *Extracurricular*: distinct lessons per kindergarten year, by kind of lesson (sport, arts &
-  culture, technology & science, language), from the lesson names (see "Lesson categories").
-  Kinds nobody took in kindergarten are left out.
+- *Classroom*: kindergarten class (1/2b vs 1/2a), and the CLASS total of that class (average of
+  emotional support, classroom organization and instructional support), averaged over the
+  pupil's kindergarten years. The three CLASS domains are measured on the same class-years and
+  move together too closely to be told apart, so they are combined.
+- *Extracurricular*: distinct lessons per kindergarten year, by kind of lesson (sport &
+  movement, arts & culture, technology, science & strategy, language & numbers, life skills &
+  play; see "Lesson categories"). Kinds nobody took in kindergarten are left out.
 - *Support*: any support during kindergarten, by kind of need (language, learning, other:
-  behaviour, motor skills, assessment). Pupils whose kindergarten years the support file does
-  not cover are marked *no data*.
+  behaviour, motor skills, assessment). For the first cohorts the support file covers none of
+  their kindergarten years, so they count as without support; the cohort control keeps this
+  from looking like an effect.
 - *Readiness* (group 3 outcomes only): last observation scores per subject (maths, language,
   social-emotional, motor), **compared with classmates** (standardised within each kindergarten
   class), because the two classes' teachers score differently (see the readiness section).
@@ -473,9 +475,12 @@ together with differences in the outcome.
 ## Lesson categories
 
 ::: {.callout-note collapse="true" title="How this table was made"}
-Every lesson name in `Extracurricular.xlsx` with its number of rows and the category it got from
-keyword rules on the name (in `R/explained_variance.R`, English and Dutch keywords). Names that
-match no rule are `other`. Check this list: a wrong category moves lessons between features.
+Every lesson name in `Extracurricular.xlsx` with its number of rows and its kind. Kinds come from
+a list of the lesson names in `R/explained_variance.R` (`assigned_by` = list); names not on that
+list get a kind from English and Dutch keywords (`keywords`), or `Other` when nothing matches.
+Mixed lessons go to their main activity (for example *Singing and Dance* to arts & culture, *Sports
+and Games* to sport & movement); chess and draughts sit with technology & science as strategy
+games.
 :::
 
 ```{r}
