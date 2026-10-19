@@ -17,19 +17,17 @@ execute:
   message: false
 ---
 
-<!--
-How to edit this deck
-- Slide text is plain markdown: change it directly below.
-- Numbers come from the analysis as inline R (num$usual_share and so on, listed in
-  report/numbers.R), so they stay correct when the data changes. Keep them inline instead of
-  typing the values.
-- Figures come from report/plots.R; the look from report/theme.scss.
-- Building blocks: "::: {.kpi}" big number, ":::: {.cards}" cards, ":::: {.columns}" two columns.
--->
-
 ```{r}
 #| label: setup
 #| include: false
+
+# How to edit this deck
+# - Slide text is plain markdown: change it directly below.
+# - Numbers come from the analysis as inline R (num$usual_share and so on, listed in
+#   report/numbers.R), so they stay correct when the data changes. Keep them inline instead of
+#   typing the values.
+# - Figures come from report/plots.R; the look from report/theme.scss.
+# - Building blocks: "::: {.kpi}" big number, ":::: {.cards}" cards, ":::: {.columns}" two columns.
 
 # FALSE: renders in seconds without data, numbers show as "…" and figures as placeholders.
 # TRUE: fills in the numbers and figures from the analysis. Needs the data in data/ (see the README).
