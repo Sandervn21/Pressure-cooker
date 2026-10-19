@@ -13,7 +13,8 @@ execute:
 ---
 
 All computation lives in `R/`; this notebook runs the scripts in order and shows their results.
-The raw Excel exports must be in `data/` (see the README).
+The raw Excel exports must be in `data/` (see the README). Long tables are folded away: click
+**Show table** to open them. Each table has a **How this table was made** note.
 
 ```{r}
 #| label: setup
@@ -25,18 +26,49 @@ source("R/q1_model.R")
 source("R/q1_robustness.R")
 source("R/q2_analysis.R")
 
-show_table <- function(x, digits = 3) knitr::kable(x, digits = digits)
+# Tables longer than `collapse_after` rows are folded behind a "Show table" toggle
+show_table <- function(x, digits = 3, collapse_after = 15) {
+  if (nrow(x) == 0) {
+    return(knitr::asis_output("*No rows.*\n"))
+  }
+  if (nrow(x) <= collapse_after) {
+    return(knitr::kable(x, digits = digits))
+  }
+  html <- knitr::kable(
+    x,
+    digits = digits, format = "html",
+    table.attr = 'class="table table-sm table-striped"'
+  )
+  knitr::asis_output(paste0(
+    "<details><summary>Show table (", nrow(x), " rows)</summary>\n\n", html, "\n\n</details>\n"
+  ))
+}
 ```
 
 # Data preparation
 
-CITO scores that could not be converted to numbers:
+## CITO scores that are not numbers
+
+::: {.callout-note collapse="true" title="How this table was made"}
+The `Score` column of the Cito workbook (all class sheets stacked) is read as text, decimal
+commas are replaced by points and the result is converted to a number. This table lists every
+distinct non-empty value that still could not be read as a number. Those scores are treated as
+missing everywhere below.
+:::
 
 ```{r}
 show_table(failed_conversion)
 ```
 
-CLASS observations whose date could not be parsed or does not match the `Quarter` column:
+## CLASS observations with date problems
+
+::: {.callout-note collapse="true" title="How this table was made"}
+One row per CLASS observation (`CLASS.xlsx`) whose `Date` could not be read as a date, or whose
+date falls in a different quarter than its `Quarter` column (for example a date in March with
+`Quarter` = `2023_Q2`). `assessment_date` is the date as read, `expected_quarter` the quarter that
+date belongs to. CLASS scores are averaged per school year and class later on, so these rows
+are still used, by their school year.
+:::
 
 ```{r}
 show_table(class_date_issues)
@@ -44,7 +76,13 @@ show_table(class_date_issues)
 
 ## Learning-goal scores
 
-Summary per learning-goal code:
+::: {.callout-note collapse="true" title="How this table was made"}
+One row per learning-goal code (`Leerpadcode`) in the groups 1-2 observations. For every pupil,
+all observations of that goal are averaged into one score (scale 0-3, values as recorded); the
+columns then summarise those per-pupil averages across pupils: how many pupils have the goal,
+and the mean, standard deviation, median, minimum and maximum. Observations from different ages
+are mixed, so a goal observed mostly in the first months scores lower than one observed later.
+:::
 
 ```{r}
 show_table(score_summary)
@@ -52,11 +90,24 @@ show_table(score_summary)
 
 ## CITO scores
 
+::: {.callout-note collapse="true" title="How this table was made"}
+One row per Cito test. For every pupil, all their scores on that test are averaged, over every
+grade (3 to 6) and both assessment moments (mid and end of year); the columns summarise those
+per-pupil averages across pupils. Cito scores grow with grade and each test has its own scale,
+so these numbers describe the export rather than a single moment.
+:::
+
 ```{r}
 show_table(grade_summary)
 ```
 
 ## Extracurricular activities
+
+::: {.callout-note collapse="true" title="How this table was made"}
+Number of rows per lesson name in `Extracurricular.xlsx`, over all school years and all
+pupils. A row is one pupil taking one lesson in one block, so a pupil who took the same
+lesson in several blocks counts several times.
+:::
 
 ```{r}
 data_extra |>
@@ -73,8 +124,36 @@ reached group 3; only for them are kindergarten time, readiness and group 3 outc
 ## Time in kindergarten
 
 The first table the school asked for: how long pupils spend in kindergarten, how many
-deviate from the regular path (against a 1 January cut-off) and how old they are when
-group 3 starts, with winter birthdays shown separately.
+deviate from the regular path and how old they are when group 3 starts, with winter
+birthdays shown separately.
+
+::: {.callout-note collapse="true" title="How this table was made"}
+**Pupils.** Everyone in the master list (`Pupils.xlsx`) with at least one Cito result in grade 3.
+Pupils still in groups 0-2 have no end date yet and are left out.
+
+**Steps per pupil:**
+
+1. **Start at school**: `Start date` in `Pupils.xlsx`. This includes any time in the starter
+   group, and for pupils who came from another school it is their first day at Het Epos.
+2. **Start of group 3**: the first school year with a grade 3 Cito result (for example
+   `mid 2022-2023` gives 2022/23), assumed to begin on **20 August** of that year.
+3. **Months in kindergarten** = days from step 1 to step 2, divided by 30.44.
+4. **Regular path**: with a 1 January cut-off, a child born in year *B* starts group 3 in
+   August of *B* + 6. A pupil who started group 3 a year earlier **moved up early**; a year
+   later (for example after repeating a kindergarten year) **stayed longer**.
+5. **Age at group 3**: age on 20 August of the group 3 year.
+
+**Rows.** All pupils who reached group 3, then the same split by birth quarter, then the pupils
+born in October-December (the "autumn children" the school asked about).
+
+**Columns.** `pupils`: number of pupils; `mean_months`, `sd_months`, `min_months`, `max_months`:
+months in kindergarten; `moved_up_early`, `stayed_longer`: number of pupils off the regular path;
+`mean_age_at_g3`: average age in years at the start of group 3.
+
+**Assumptions to check with the school.** The 20 August start date; the 1 January cut-off; and
+that the first grade 3 Cito result marks the first year in group 3 (a pupil who missed every
+grade 3 test is missing here).
+:::
 
 ```{r}
 show_table(kg_overview, digits = 1)
@@ -82,8 +161,27 @@ show_table(kg_overview, digits = 1)
 
 ## Goals achieved before group 3
 
-The second table: share of the client's goals at score 2 or higher on the last
-observation before group 3.
+The second table: what share of the goals that matter for group 3 pupils had achieved when
+group 3 started.
+
+::: {.callout-note collapse="true" title="How this table was made"}
+**Goal lists.** From the client's materials: 15 goals marked as important before group 3, and
+19 basic goals for groups 1-2.
+
+**Steps per pupil** (pupils who reached group 3):
+
+1. Take all observations of the goals in the list made **before** the pupil's start of group 3
+   (20 August of the group 3 year), keeping only scores 0-3.
+2. For each goal, keep the **last** observation.
+3. A goal counts as **achieved** when that last score is **2 or higher** (2 = the child has some
+   notion of the goal, 3 = mastered).
+4. The pupil's percentage = achieved goals / goals of the list that were observed. Goals never
+   observed for that pupil are left out, not counted as missed.
+
+**Columns.** `goals_in_list`: goals in the client's list; `pupils`: pupils with at least one
+of them observed; `mean_pct_achieved`: average of the pupils' percentages; `min_pct`, `max_pct`:
+lowest and highest pupil; `p10_pct`, `p90_pct`: 10% of pupils are below / above these values.
+:::
 
 ```{r}
 show_table(goals_overview, digits = 1)
@@ -91,11 +189,26 @@ show_table(goals_overview, digits = 1)
 
 ## Columns
 
+::: {.callout-note collapse="true" title="How this table was made"}
+A description of each group of columns in `pupils_table`. The exact steps for every column are
+in `R/pupil_table.R`; time windows always follow the pupil's own start of group 3 (20 August of
+the first year with a grade 3 Cito result). Lessons and support during kindergarten only count
+school years the export covers (lessons from 2021/22, support from the first year in the
+support file), so pupils from the first cohorts can have fewer kindergarten years with data.
+:::
+
 ```{r}
 show_table(pupils_table_columns)
 ```
 
 Pupils who reached group 3 with a value in each column:
+
+::: {.callout-note collapse="true" title="How this table was made"}
+For each column of `pupils_table`, the number of pupils who reached group 3 with a non-missing
+value. Low numbers mean the export does not cover that pupil's years (for example support
+before the support file starts) or the test was not taken (for example reading comprehension
+in grade 3).
+:::
 
 ```{r}
 show_table(pupils_table_coverage)
@@ -105,6 +218,25 @@ show_table(pupils_table_coverage)
 
 Development is the average z-score across learning goals per pupil.
 Both predictors are mean-centred, so each main effect is the effect at the average of the other predictor.
+
+::: {.callout-note collapse="true" title="How this table and model were made"}
+**Development.** For every pupil and goal, all observations are averaged; each goal's averages
+are turned into z-scores across pupils; a pupil's development is the mean of their z-scores.
+0 is average, above 0 above average.
+
+**Activities.** Number of distinct lesson names a pupil took in `Extracurricular.xlsx`, over all
+school years. Pupils without any record are missing (not 0) and drop out of the model.
+
+**Kindergarten months.** `kindergarten_months` from `cleanup.R`: months from the start date to
+1 August two school years after the school year of the start, or to today if that is later than
+today. This is not the time until group 3 actually started (see the robustness section).
+
+**Stages.** `data_clean`: pupils in the master list; `with learning-goal scores`: pupils with a
+development score; `complete cases in model`: those with kindergarten months and activities too.
+
+**Model.** Linear regression of development on kindergarten months, activities and their
+product, both predictors centred on their mean.
+:::
 
 ```{r}
 show_table(q1_sample_sizes)
@@ -128,6 +260,25 @@ pupils who reached group 3, their actual time until group 3, and the transition 
 achieved before group 3. If the activities coefficient changes sign or vanishes at a
 step, that choice drives the result. `b_per_sd_outcome` puts the outcomes on one scale.
 
+::: {.callout-note collapse="true" title="How this table was made"}
+Each row refits the regression of the section above with one more change than the row before:
+
+1. The model as reported.
+2. Pupils without an extracurricular record get 0 activities instead of being dropped.
+3. Adds months in school (from the start date to the last observation in the export) as a
+   control, so older and younger pupils are compared at the same time in school.
+4. Keeps only pupils who reached group 3.
+5. Replaces `kindergarten_months` with months until group 3 actually started (as in the
+   kindergarten table above).
+6. Replaces development with the share of the 15 goals before group 3 achieved on the last
+   observation before group 3 (as in the goals table above).
+
+**Columns.** `n`: pupils in the model; `activities_b`: change in the outcome per extra activity,
+at average kindergarten time; `ci_low`, `ci_high`: 95% confidence interval; `p`: p-value;
+`b_per_sd_outcome`: `activities_b` divided by the outcome's standard deviation, so rows with
+different outcomes can be compared.
+:::
+
 ```{r}
 show_table(q1_bridge, digits = 4)
 ```
@@ -148,6 +299,18 @@ kg_measures_plot
 # Q2: learning goals and CITO results
 
 ## Correlations
+
+::: {.callout-note collapse="true" title="How these figures and the table were made"}
+**Learning goals.** For every pupil, all observations are averaged per goal (first figure: the
+15 goals the school named), per subject (`Vak`, second figure) or per domain (`Domein`, table).
+
+**Cito.** For every pupil, all scores on a test are averaged over every grade and moment.
+
+**Correlation.** Pearson correlation across pupils, matched by name. Cells with fewer than 3
+pupils or no variation are empty (NA). P-values are adjusted for the number of correlations
+tested (Benjamini-Hochberg); `*` marks an adjusted p below .05. The domain table only lists
+correlations above 0.7 or below -0.7.
+:::
 
 Correlations between the 15 learning-goal codes the school named and CITO scores (BH-adjusted):
 
@@ -172,6 +335,36 @@ show_table(strong_correlations_domein)
 ```
 
 ## Which Vakken predict group 3 CITO? (elastic net)
+
+::: {.callout-note collapse="true" title="How these tables were made"}
+**Outcome.** For each Cito test with grade 3 results: a pupil's grade 3 score (mid and end of
+year averaged), in Cito score points. Tests with fewer than 10 pupils are skipped
+(`model_status`).
+
+**Predictors.** `kindergarten_months` (see Q1); per subject (`Vak`), the pupil's average
+observation score over all observations; number of activities; number of support records
+(all years).
+
+**Four models per test.** `baseline`: predicts the average score; `time`: linear regression on
+kindergarten months; `readiness`: elastic net on kindergarten months and all subjects; `context`:
+readiness plus activities and support.
+
+**Cross-validation.** Pupils are split into 5 folds, repeated 10 times. Each model is fitted on 4
+folds and predicts the fifth. Missing predictor values are filled with the training folds'
+median, and predictors are standardised, inside each training split. The elastic-net penalty
+is tuned by a second 5-fold split within the training folds.
+
+**`rmse_results`.** `mean_RMSE`: average prediction error in Cito score points (lower is
+better); `sd_RMSE_across_repeats`: spread over the 10 repeats; `improvement_over_baseline`:
+how much lower the error is than the baseline's; `rank`: order within the test.
+
+**Subject table.** For the readiness model, per test and subject: `availability_pct`: share of
+the 50 fits in which the subject had usable values; `selection_pct`: share of fits with a
+non-zero coefficient; the mean (absolute) standardised coefficient; the share of positive
+coefficients when selected; `proportion_missing`: share of pupils without that subject.
+
+**Missing predictors.** Per test and predictor, the share of pupils in the model without a value.
+:::
 
 ```{r}
 show_table(model_status)
@@ -198,7 +391,24 @@ show_table(predictor_missingness)
 
 ## Baseline, time, readiness and context models
 
-Uses the two most-selected Vakken per test:
+::: {.callout-note collapse="true" title="How these tables were made"}
+**Subjects.** Two subjects per test, picked by hand from an earlier run of the elastic net above
+(`selected_vakken`). They were chosen on the same pupils, so the results below are optimistic.
+
+**Models.** The same four models as above, but as ordinary linear regressions with only the
+two subjects: `baseline` (average), `time` (kindergarten months), `readiness` (kindergarten
+months + the two subjects), `context` (readiness + activities and support records).
+
+**Cross-validation.** 5 folds repeated 10 times, the same folds for all four models; missing
+values filled with the training folds' median. Tests are skipped when the training folds have
+too few pupils for the context model (`model_status_top2`).
+
+**`rmse_results_top2`.** As above: prediction error in Cito score points per model and test.
+
+**Coefficients.** Each model refitted on all pupils of a test (missing values filled with the
+median). `estimate` is in Cito score points per unit of the predictor (per month, per point of
+average observation score, per activity, per support record).
+:::
 
 ```{r}
 selected_vakken |>
