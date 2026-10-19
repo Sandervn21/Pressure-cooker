@@ -24,6 +24,8 @@ source("R/cleanup.R")
 source("R/pupil_table.R")
 source("R/direct_path.R")
 source("R/stage1.R")
+source("R/explained_variance.R")
+source("R/conclusions.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
 source("R/q2_analysis.R")
@@ -209,6 +211,14 @@ per child.
 show_table(g3_by_birth_month, digits = 0)
 ```
 
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_timing())
+```
+:::
+
 ## Goals achieved before group 3
 
 The second table: what share of the goals that matter for group 3 pupils had achieved when
@@ -236,6 +246,14 @@ lowest and highest pupil; `p10_pct`, `p90_pct`: 10% of pupils are below / above 
 ```{r}
 show_table(goals_overview, digits = 1)
 ```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_goals())
+```
+:::
 
 ## Columns
 
@@ -339,6 +357,14 @@ achievers, so this shows whether they are concentrated among pupils with short k
 show_table(direct_equity)
 ```
 
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_direct())
+```
+:::
+
 # Readiness at the end of kindergarten (Q1 and Q2)
 
 Which groups 1-2 factors go with how many goals a pupil has reached when group 3 starts?
@@ -413,6 +439,176 @@ next to the class comparison rather than used in the models.
 ```{r}
 show_table(class_quality_kg_classes)
 ```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_stage1())
+```
+:::
+
+# What contributes to the outcomes?
+
+Time in kindergarten is one of several things that differ between pupils in groups 1-2. This
+section puts them side by side, in blocks: **time**, **classroom**, **extracurricular lessons**,
+**support** and, for the group 3 outcomes, **readiness** at the end of kindergarten. It asks how
+much of the differences between pupils each block accounts for.
+
+::: {.callout-note collapse="true" title="How this section was made"}
+**Pupils.** Pupils who reached group 3 with a kindergarten class (for the goals) or with the
+group 3 outcome (for Cito and support). `n` is shown per outcome.
+
+**Features, by block** (each block split into kinds where the data allows):
+
+- *Time*: months in kindergarten (in this export the same as age at group 3 − 4).
+- *Classroom*: kindergarten class (1/2b vs 1/2a), and the CLASS total of that class (average of
+  emotional support, classroom organization and instructional support), averaged over the
+  pupil's kindergarten years. The three CLASS domains are measured on the same class-years and
+  move together too closely to be told apart, so they are combined.
+- *Extracurricular*: distinct lessons per kindergarten year, by kind of lesson (sport &
+  movement, arts & culture, technology, science & strategy, language & numbers, life skills &
+  play; see "Lesson categories"). Kinds nobody took in kindergarten are left out.
+- *Support*: any support during kindergarten, by kind of need (language, learning, other:
+  behaviour, motor skills, assessment). For the first cohorts the support file covers none of
+  their kindergarten years, so they count as without support; the cohort control keeps this
+  from looking like an effect.
+- *Readiness* (group 3 outcomes only): last observation scores per subject (maths, language,
+  social-emotional, motor), **compared with classmates** (standardised within each kindergarten
+  class), because the two classes' teachers score differently (see the readiness section).
+
+**Models.** One linear regression per outcome with all features and the leaving cohort as a
+control; support in group 3 (yes/no) as a linear probability model. Continuous features and the
+outcome are in standard deviations, so the fit coefficients are comparable: the change in the
+outcome (in SD) per SD of the feature, or between the two groups for yes/no features.
+
+**Explained variance per block.** The model is refitted with every combination of blocks. A
+block's *share* is how much it adds to the explained variance (R², on top of cohort), averaged
+over every order in which the blocks can be added; the shares add up to the model's total.
+*Lost without block* is how much R² drops when only that block is removed. The 95% intervals come
+from refitting on 300 resamples of the pupils. A resample always finds some R² by chance, so these
+intervals sit somewhat high (a share can even fall just below its own interval); compare with the
+chance level below.
+
+**Chance level.** With about 75 pupils, a block gets some R² even if it has nothing to do with the
+outcome, and more so the more features it has. The *noise level* is a block's average share when
+the outcome is shuffled (300 times), so that nothing can truly be explained; *above noise* is the
+share minus that level. Only shares clearly above the noise level mean something.
+
+**Two framings for the group 3 outcomes.** *Kindergarten factors*: time, classroom,
+extracurricular, support. *Kindergarten factors + readiness*: adds what the child could do at the
+end of kindergarten. Readiness is partly a result of the other blocks, so in the second framing
+it takes over part of their share.
+
+**Reading the results.** These are associations, not effects: pupils were not assigned to more
+time, a class or support at random. The shares describe which differences between pupils go
+together with differences in the outcome.
+:::
+
+## Lesson categories
+
+::: {.callout-note collapse="true" title="How this table was made"}
+Every lesson name in `Extracurricular.xlsx` with its number of rows and its kind. Kinds come from
+a list of the lesson names in `R/explained_variance.R` (`assigned_by` = list); names not on that
+list get a kind from English and Dutch keywords (`keywords`), or `Other` when nothing matches.
+Mixed lessons go to their main activity (for example *Singing and Dance* to arts & culture, *Sports
+and Games* to sport & movement); chess and draughts sit with technology & science as strategy
+games.
+:::
+
+```{r}
+show_table(lesson_categories)
+```
+
+## Features against the outcomes
+
+Each panel: one feature against the outcome, with a straight-line fit. Yes/no features are
+spread slightly sideways so the points do not overlap.
+
+::: {.panel-tabset}
+
+### Goals before group 3 achieved
+
+```{r}
+#| fig-width: 11
+#| fig-height: 7
+ev_feature_plot("transition_share", "Goals before group 3 achieved")
+```
+
+### Cito maths, end of group 3
+
+```{r}
+#| fig-width: 11
+#| fig-height: 8.5
+ev_feature_plot("cito_g3_maths", "Cito maths, end of group 3")
+```
+
+### Cito TMT, end of group 3
+
+```{r}
+#| fig-width: 11
+#| fig-height: 8.5
+ev_feature_plot("cito_g3_tmt", "Cito TMT, end of group 3")
+```
+
+### Cito spelling, end of group 3
+
+```{r}
+#| fig-width: 11
+#| fig-height: 8.5
+ev_feature_plot("cito_g3_spelling", "Cito spelling, end of group 3")
+```
+
+### Any support in group 3
+
+```{r}
+#| fig-width: 11
+#| fig-height: 8.5
+ev_feature_plot("support_g3", "Any support in group 3")
+```
+
+:::
+
+## Model fits
+
+```{r}
+#| fig-width: 12
+#| fig-height: 7
+ev_coefficient_plot
+```
+
+```{r}
+show_table(ev_coefficient_table)
+```
+
+## Explained variance per block
+
+Total explained variance per model (R² on top of the leaving cohort, and of cohort alone):
+
+```{r}
+show_table(ev_variance_summary)
+```
+
+```{r}
+#| fig-width: 11
+#| fig-height: 6
+ev_variance_plot
+```
+
+```{r}
+ev_variance_table %>%
+  select(outcome, framing, n, block, features_in_block, r2_share, r2_share_low, r2_share_high,
+         noise_level, above_noise, pct_of_explained, r2_lost_without_block) %>%
+  show_table()
+```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_variance())
+```
+:::
 
 # Q1 as first reported: time in kindergarten × extracurricular activities
 
@@ -495,6 +691,14 @@ until group 3 actually started:
 #| fig-height: 5
 kg_measures_plot
 ```
+
+::: {.callout-tip title="Conclusion"}
+```{r}
+#| output: asis
+#| echo: false
+cat(conclusion_q1_reported())
+```
+:::
 
 # Q2: learning goals and CITO results
 
