@@ -8,7 +8,7 @@
 # Assumptions (one place to change them)
 g3_start_month <- 8L # group 3 starts on 20 August
 g3_start_mday <- 20L
-cutoff_offset <- 6L # 1 January cut-off: born in year B -> group 3 in August of B + 6
+export_school_year <- 2026L # school year of the export; `Current year group` refers to it
 achieved_min <- 2 # observation score (0-3) that counts as a goal achieved
 
 # The client's goal lists (materials: "basic goals" groups 1-2 and "goals before group 3")
@@ -51,14 +51,57 @@ as_number <- function(x) suppressWarnings(as.numeric(gsub(",", ".", trimws(as.ch
 # School years [from, to] as a list column; empty when from > to
 year_span <- function(from, to) map2(from, to, ~ if (is.na(.x) || is.na(.y) || .x > .y) integer(0) else seq(.x, .y))
 
+# "2025_Q3" -> school year 2025; "2026_Q1" -> 2025
+sy_from_quarter <- function(x) {
+  as.integer(str_extract(x, "^\\d{4}")) - as.integer(as.integer(str_extract(x, "(?<=Q)\\d")) <= 2)
+}
+
+per_pupil <- function(d, f) {
+  d %>%
+    filter(!is.na(name_key), !is.na(year)) %>%
+    group_by(name_key) %>%
+    summarise(year = f(year), .groups = "drop")
+}
+
+mode_int <- function(x) as.integer(names(sort(table(x), decreasing = TRUE))[1])
+
 # --- Timing ---------------------------------------------------------------------------------
 
-g3_years <- data_grade %>%
-  filter(trimws(as.character(Grade)) == "Grade 3") %>%
-  transmute(name_key = make_key(Name), school_year = sy_from_period(`Assessment period`)) %>%
-  filter(!is.na(name_key), !is.na(school_year)) %>%
-  group_by(name_key) %>%
-  summarise(g3_year = min(school_year), .groups = "drop")
+# School year in which group 3 started, per source. On the real data the dated sources agree
+# for every pupil they share; counting back from the current year group differs only for
+# pupils who repeated a year after group 3.
+g3_from_cito <- data_grade %>%
+  filter(str_squish(as.character(Grade)) == "Grade 3") %>%
+  transmute(name_key = make_key(Name), year = sy_from_period(`Assessment period`)) %>%
+  per_pupil(min) %>%
+  rename(g3_cito = year)
+
+g3_from_maths <- if (is.null(data_math)) {
+  tibble(name_key = character(), g3_maths = integer())
+} else {
+  data_math %>%
+    transmute(name_key = make_key(leerling), grade = floor(as_number(blok)), date = as_date_cell(datum, "mdy")) %>%
+    filter(grade == 3, !is.na(date)) %>%
+    transmute(name_key, year = school_year_start(date)) %>%
+    per_pupil(min) %>%
+    rename(g3_maths = year)
+}
+
+g3_from_questionnaire <- if (is.null(data_questionnaire)) {
+  tibble(name_key = character(), g3_questionnaire = integer())
+} else {
+  data_questionnaire %>%
+    filter(as_number(Leerjaar) == 3) %>%
+    transmute(name_key = make_key(Leerling), year = sy_from_quarter(as.character(Periode))) %>%
+    per_pupil(min) %>%
+    rename(g3_questionnaire = year)
+}
+
+# Leaving year in Cito; the school moves it when a pupil repeats a year
+cito_leaving_year <- data_grade %>%
+  transmute(name_key = make_key(Name), year = as.integer(as_number(`Cohort year`))) %>%
+  per_pupil(mode_int) %>%
+  rename(cito_leaving_year = year)
 
 pupil_timing <- data_kids %>%
   transmute(
@@ -71,26 +114,52 @@ pupil_timing <- data_kids %>%
   ) %>%
   filter(!is.na(name_key), name_key != "") %>%
   distinct(name_key, .keep_all = TRUE) %>%
-  left_join(g3_years, by = "name_key", relationship = "one-to-one") %>%
+  left_join(g3_from_cito, by = "name_key", relationship = "one-to-one") %>%
+  left_join(g3_from_maths, by = "name_key", relationship = "one-to-one") %>%
+  left_join(g3_from_questionnaire, by = "name_key", relationship = "one-to-one") %>%
+  left_join(cito_leaving_year, by = "name_key", relationship = "one-to-one") %>%
   mutate(
+    g3_count_back = if_else(current_year_group >= 3L, export_school_year - (current_year_group - 3L), NA_integer_),
+    # first available source, in order of how direct it is
+    g3_year = coalesce(g3_cito, g3_maths, g3_questionnaire, g3_count_back),
+    g3_source = case_when(
+      !is.na(g3_cito) ~ "Cito grade 3",
+      !is.na(g3_maths) ~ "maths tests block 3",
+      !is.na(g3_questionnaire) ~ "questionnaire group 3",
+      !is.na(g3_count_back) ~ "current year group",
+      TRUE ~ NA_character_
+    ),
+    # later sources say group 3 (or the leaving year) came a year later than it did
+    repeated_after_g3 = if_else(
+      is.na(g3_year) | current_year_group < 3L, NA,
+      coalesce(g3_count_back > g3_year, FALSE) | coalesce(cito_leaving_year - 6L > g3_year, FALSE)
+    ),
     birth_month = lubridate::month(date_of_birth),
     birth_quarter = c("Jan-Mar", "Apr-Jun", "Jul-Sep", "Oct-Dec")[lubridate::quarter(date_of_birth)],
     autumn_born = birth_month >= 10,
     age_at_start = lubridate::time_length(lubridate::interval(date_of_birth, start_date), "years"),
     entry_school_year = school_year_start(start_date),
-    reached_g3 = !is.na(g3_year),
+    reached_g3 = !is.na(g3_year) & g3_year <= export_school_year & coalesce(current_year_group >= 3L, FALSE),
+    has_cito_g3 = !is.na(g3_cito),
     g3_start = lubridate::make_date(g3_year, g3_start_month, g3_start_mday), # NA when not reached
+    # In this export the start date lies at the 4th birthday for every pupil, so time in
+    # kindergarten is in effect (age at the start of group 3 - 4) in months
     months_to_g3 = as.numeric(g3_start - start_date) / 30.44,
     age_at_g3 = lubridate::time_length(lubridate::interval(date_of_birth, g3_start), "years"),
-    expected_g3_year = lubridate::year(date_of_birth) + cutoff_offset,
-    path_to_g3 = case_when(
-      !reached_g3 ~ NA_character_,
-      g3_year < expected_g3_year ~ "early",
-      g3_year > expected_g3_year ~ "late",
-      TRUE ~ "on time"
-    ),
+    # group 3 year minus birth year: 6 for most pupils, 5 or 7 when the school decided otherwise
+    g3_year_offset = g3_year - lubridate::year(date_of_birth),
     cohort = g3_year + 6L # leaving year
-  )
+  ) %>%
+  mutate(
+    usual_offset = mode_int(g3_year_offset[reached_g3]),
+    g3_timing = case_when(
+      !reached_g3 ~ NA_character_,
+      g3_year_offset < usual_offset ~ "earlier than most",
+      g3_year_offset > usual_offset ~ "later than most",
+      TRUE ~ "usual"
+    )
+  ) %>%
+  select(-usual_offset)
 
 # --- Observations before group 3 ------------------------------------------------------------
 
@@ -260,11 +329,30 @@ summarise_kg <- function(d) {
     sd_months = sd(months_to_g3),
     min_months = min(months_to_g3),
     max_months = max(months_to_g3),
-    moved_up_early = sum(path_to_g3 == "early"),
-    stayed_longer = sum(path_to_g3 == "late"),
+    group3_earlier_than_most = sum(g3_timing == "earlier than most"),
+    group3_later_than_most = sum(g3_timing == "later than most"),
     mean_age_at_g3 = mean(age_at_g3)
   )
 }
+
+# Group 3 year minus birth year, by birth month: what the school does, without assuming a rule
+g3_by_birth_month <- reached %>%
+  mutate(
+    birth_month = lubridate::month(date_of_birth, label = TRUE, abbr = TRUE, locale = "C"),
+    offset = paste0("birth year + ", g3_year_offset)
+  ) %>%
+  count(birth_month, offset) %>%
+  pivot_wider(names_from = offset, values_from = n, values_fill = 0) %>%
+  select(birth_month, sort(setdiff(names(.), "birth_month")))
+
+# Where each pupil's group 3 year comes from, and pupils who repeated a year after group 3
+g3_sources_overview <- pupils_table %>%
+  filter(reached_g3) %>%
+  count(source = g3_source, name = "pupils") %>%
+  bind_rows(tibble(
+    source = "repeated a year after group 3 (current year group or leaving year a year behind)",
+    pupils = sum(pupils_table$repeated_after_g3, na.rm = TRUE)
+  ))
 
 kg_overview <- bind_rows(
   summarise_kg(reached) %>% mutate(group = "All pupils who reached group 3"),
@@ -295,9 +383,12 @@ goals_overview <- bind_rows(
 # What each column means and how many pupils who reached group 3 have it
 pupils_table_columns <- tribble(
   ~column, ~meaning,
-  "months_to_g3", "Months from start at school to 20 August of the first group 3 year",
+  "g3_year / g3_source", "School year group 3 started, and where that comes from (Cito, maths tests, questionnaire, current year group)",
+  "months_to_g3", "Months from start at school to 20 August of the group 3 year; in this export the same as (age at group 3 - 4)",
   "age_at_start / age_at_g3", "Age in years at start of school / at start of group 3",
-  "path_to_g3", "early / on time / late against a 1 January cut-off",
+  "g3_year_offset / g3_timing", "Group 3 year minus birth year, and whether that is the usual offset or earlier / later than most",
+  "repeated_after_g3", "Current year group or Cito leaving year is a year behind the group 3 year",
+  "has_cito_g3", "Has a grade 3 Cito result (pupils who just started group 3 do not yet)",
   "kg_class", "Kindergarten class the pupil was observed in most (1/2a or 1/2b)",
   "ready_<domain>", "Mean of the last score (0-3) per goal before group 3, per subject",
   "transition_share / basic_share", "Share of the client's goals at score >= 2 on the last observation before group 3",
