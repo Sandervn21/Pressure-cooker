@@ -1,6 +1,5 @@
 ---
 pagetitle: "Het Epos: early years and later results"
-author: "Sander van Nieuwenhuijzen, Teodora Costache, Mariia Steeghs-Turchina"
 format:
   revealjs:
     theme: [default, report/theme.scss]
@@ -13,8 +12,6 @@ format:
     pdf-max-pages-per-slide: 1
 execute:
   echo: false
-  warning: false
-  message: false
 ---
 
 ```{r}
@@ -132,7 +129,7 @@ The two classes score the same learning goals differently, which makes them hard
 :::
 ::::
 
-## We linked each pupil's kindergarten data to their group 3 results
+## We linked each pupil's kindergarten data to their group 3 results {.nostretch}
 
 ```{r}
 #| fig-width: 10

@@ -1,0 +1,10 @@
+# Quarto project: `quarto render` builds both documents; settings here apply to both
+project:
+  render:
+    - analysis.qmd
+    - report.qmd
+
+author: "Sander van Nieuwenhuijzen, Teodora Costache, Mariia Steeghs-Turchina"
+execute:
+  warning: false
+  message: false
