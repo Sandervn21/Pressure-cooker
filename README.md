@@ -20,6 +20,7 @@ extracurricular activities in groups 1–2 relate to results in group 3 and late
    - `Pupils.xlsx`
    - `Support interventions_care team.xlsx`
    - `CLASS.xlsx`
+   - `pupil questionnaire.xlsx` (optional; without it the well-being columns stay empty)
 
 ## Run
 
