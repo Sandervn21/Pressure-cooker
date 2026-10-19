@@ -397,7 +397,7 @@ vak_order <- plot_data %>%
 plot_data <- plot_data %>%
   mutate(
     Vak = factor(Vak, levels = rev(vak_order)),
-    Test = factor(Test, levels = c("Mathematics", "Spelling – Non-verbs", "TMT"))
+    Test = factor(Test)
   )
 
 vak_plot <- ggplot(plot_data, aes(x = selection_pct, y = Vak)) +
@@ -597,7 +597,7 @@ plot_data <- rmse_results_top2 %>%
   mutate(
     model = factor(model, levels = c("baseline", "time", "readiness", "context"),
                    labels = c("Baseline", "Time", "Readiness", "Context")),
-    Test = factor(Test, levels = c("Mathematics", "Spelling – Non-verbs", "TMT")),
+    Test = factor(Test),
     lower = pmax(0, mean_RMSE - sd_RMSE_across_repeats),
     upper = mean_RMSE + sd_RMSE_across_repeats,
     label = sprintf("%.1f", mean_RMSE)
