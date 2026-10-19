@@ -45,6 +45,9 @@ as_date_cell <- function(x, text_orders) {
   out
 }
 
+# Numbers stored as text, some with a decimal comma ("3,1")
+as_number <- function(x) suppressWarnings(as.numeric(gsub(",", ".", trimws(as.character(x)), fixed = TRUE)))
+
 # School years [from, to] as a list column; empty when from > to
 year_span <- function(from, to) map2(from, to, ~ if (is.na(.x) || is.na(.y) || .x > .y) integer(0) else seq(.x, .y))
 
@@ -96,7 +99,7 @@ obs_before_g3 <- data_observatie %>%
     name_key = make_key(Leerling),
     vak = as.character(Vak),
     code = as.character(Leerpadcode),
-    score = suppressWarnings(as.numeric(Score)),
+    score = as_number(Score),
     date = as_date_cell(Datum, "mdy"),
     kg_class = normalise_class(Groep)
   ) %>%
@@ -196,9 +199,9 @@ cito_end <- data_grade %>%
   transmute(
     name_key = make_key(Name),
     grade = readr::parse_number(as.character(Grade)),
-    moment = word(as.character(`Assessment period`), 1),
-    test = cito_tests[as.character(Test)],
-    ability = suppressWarnings(as.numeric(`Ability score`)),
+    moment = tolower(word(str_squish(as.character(`Assessment period`)), 1)),
+    test = cito_tests[str_squish(as.character(Test))],
+    ability = as_number(`Ability score`),
     band = as.character(`Performance band`)
   ) %>%
   filter(!is.na(name_key), moment == "end", grade %in% 3:4, !is.na(test), !is.na(ability)) %>%
