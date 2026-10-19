@@ -1,6 +1,7 @@
 # Read the raw Het Epos exports from data/ (not tracked in git).
 
-data_dir <- "data"
+# Folder with the exports; set PRESSURE_COOKER_DATA_DIR (e.g. in .Renviron) to read another one
+data_dir <- Sys.getenv("PRESSURE_COOKER_DATA_DIR", unset = "data")
 
 read_raw <- function(file) {
   path <- file.path(data_dir, file)
