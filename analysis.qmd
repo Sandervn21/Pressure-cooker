@@ -22,6 +22,7 @@ source("R/setup.R")
 source("R/load_data.R")
 source("R/cleanup.R")
 source("R/pupil_table.R")
+source("R/direct_path.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
 source("R/q2_analysis.R")
@@ -262,7 +263,82 @@ in grade 3).
 show_table(pupils_table_coverage)
 ```
 
-# Q1: time in kindergarten × extracurricular activities
+# Q1: kindergarten time and group 3 outcomes
+
+Do pupils who spent longer in kindergarten do better in group 3? Each outcome is compared with
+time in kindergarten directly, without looking at what happened in kindergarten itself.
+
+::: {.callout-note collapse="true" title="How these tables were made"}
+**Pupils.** Pupils who reached group 3 (see "When group 3 started"). Cito outcomes exist only
+for pupils with grade 3 Cito results; support in group 3 only when the support file covers that
+school year; well-being only for pupils with questionnaire answers in group 3. `n` is the number
+of pupils in each model.
+
+**Time in kindergarten.** Months from the start date to the start of group 3 (see "Time in
+kindergarten"). In this export that equals the age at the start of group 3 minus 4, so the
+estimates are for **more time and an older age at group 3 together**; the data cannot tell
+the two apart.
+
+**Outcomes.** *Primary*: Cito ability score (0-5) at the end of group 3 for maths, TMT and
+spelling, chosen beforehand because they have the most pupils. *Secondary*: any support record
+in group 3 (yes/no) and well-being in group 3 (mean of the 7 questionnaire items, 1-3).
+*Few pupils*: reading comprehension in group 3 and Cito at the end of group 4; too few pupils
+to conclude anything, shown for completeness.
+
+**Models.** A linear regression per outcome (logistic for support), first without controls,
+then with the leaving cohort and the kindergarten class as controls (cohorts took their tests in
+different years; the first cohort started when the school opened).
+
+**First table: per 6 extra months in kindergarten.** `estimate` is the change in the outcome
+for 6 more months (in ability or well-being points; for support an odds ratio, where 1 means no
+difference and above 1 means more support); `ci_low`, `ci_high`: 95% confidence interval; `p`:
+p-value; `per_sd`: the estimate divided by the outcome's standard deviation, to compare outcomes
+(0.2 is usually called small, 0.5 medium).
+
+**Second table: less than 24 months in kindergarten.** The same, comparing pupils with less
+than two years in kindergarten (mostly children born in the autumn) with everyone else.
+
+**Reading the results.** Several outcomes are tested, so a single p-value below .05 can occur by
+chance. With about 75 pupils only moderate differences can be detected; the confidence interval
+shows which effect sizes the data still allows. Pupils who started group 3 earlier or later than
+most were placed on purpose, probably based on how ready they seemed: that can make longer
+kindergarten look worse (children kept back may have been behind) or shorter kindergarten look
+better (children moved up early may have been ahead).
+:::
+
+Per 6 extra months in kindergarten:
+
+```{r}
+show_table(direct_months)
+```
+
+Less than 24 months in kindergarten (vs 24 or more):
+
+```{r}
+show_table(direct_under_24)
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 4.5
+direct_plot
+```
+
+## Lowest Cito bands by time in kindergarten
+
+::: {.callout-note collapse="true" title="How this table was made"}
+Pupils with grade 3 Cito results, split into three equal groups by months in kindergarten
+(`Short`, `Medium`, `Long`; `months_range` shows the months in each group). Per test and group:
+the number of pupils, the average ability score and the share of pupils in Cito band IV or V
+(the lowest two fifths nationally) at the end of group 3. The school wants to lift the lowest
+achievers, so this shows whether they are concentrated among pupils with short kindergarten.
+:::
+
+```{r}
+show_table(direct_equity)
+```
+
+# Q1 as first reported: time in kindergarten × extracurricular activities
 
 Development is the average z-score across learning goals per pupil.
 Both predictors are mean-centred, so each main effect is the effect at the average of the other predictor.
