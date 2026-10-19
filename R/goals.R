@@ -86,7 +86,7 @@ domain_kind <- function(code) {
     !is.na(goal_domain(code)) ~ goal_domain(code),
     str_detect(code, "^[A-Z]+_[0-9]+_") ~ "(code with a level, e.g. BV_100_JA1)",
     str_detect(code, "^[0-9A-F]{6}$") ~ "(number-only code)",
-    TRUE ~ "(not a goal code)"
+    TRUE ~ "(not a goal code, left out)"
   )
 }
 
