@@ -12,3 +12,6 @@ data/*
 /.quarto/
 analysis.html
 analysis_files/
+
+# OS
+*.DS_Store
