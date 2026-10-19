@@ -73,3 +73,4 @@ which hold the notebook's full conclusion behind each slide.
 | `report.qmd`, `report/` | The report slides, their numbers, figures and theme |
 | `_quarto.yml` | Quarto project: which documents to build and the settings they share |
 | `quickstart.sh`, `quickstart.bat`, `quickstart.R` | One command that sets everything up and renders both outputs |
+| `.github/workflows/quickstart.yml` | CI: runs the quickstart on Linux, macOS and Windows (without data, up to the data check) |

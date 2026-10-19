@@ -7,6 +7,9 @@ if (!"renv" %in% loadedNamespaces()) source("renv/activate.R")
 
 say <- function(...) cat("\n", ..., "\n", sep = "")
 
+# Opens a file or folder in the default app; skipped where there is none (e.g. a server)
+open_path <- function(path) try(utils::browseURL(normalizePath(path)), silent = TRUE)
+
 # Waits for Enter; typing q stops the script
 stdin_con <- if (!interactive()) file("stdin", open = "r")
 ask <- function(prompt) {
@@ -80,7 +83,7 @@ optional <- c("UvA_testresults_math.xlsx", "pupil questionnaire.xlsx")
 missing_files <- function(files) files[!file.exists(file.path(data_dir, files))]
 
 # open the folder so the files can be dropped in
-if (length(missing_files(c(required, optional))) && dir.exists(data_dir)) utils::browseURL(normalizePath(data_dir))
+if (length(missing_files(c(required, optional))) && dir.exists(data_dir)) open_path(data_dir)
 while (length(missing_files(required))) {
   say("These Het Epos exports are missing. Put them, with exactly these names, in\n",
       normalizePath(data_dir), "\n\n", paste0("  ", missing_files(required), collapse = "\n"))
@@ -103,6 +106,6 @@ if (system2(quarto, "render") != 0) {
 }
 
 say("Done. Opening analysis.html and report.html in your browser.")
-utils::browseURL(normalizePath("analysis.html"))
+open_path("analysis.html")
 Sys.sleep(2)  # let the analysis tab open first, so the report ends up in front
-utils::browseURL(normalizePath("report.html"))
+open_path("report.html")
