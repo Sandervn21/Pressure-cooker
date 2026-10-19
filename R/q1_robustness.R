@@ -1,48 +1,19 @@
 # Q1 robustness: how much does the activities effect depend on choices made in q1_model.R?
 # Walks from the reported model to an alternative specification one change at a time.
-# Needs R/cleanup.R and R/q1_model.R to have been sourced.
-
-# The 15 goals the school marked as important before group 3 (`codes` in cleanup.R)
-transition_codes <- codes
-
-# Group 3 year: first school year with a Cito grade 3 result ("end 2022-2023" -> 2022)
-g3_year <- data_grade %>%
-  filter(trimws(as.character(Grade)) == "Grade 3") %>%
-  mutate(
-    name_key = make_key(Name),
-    school_year = as.integer(str_extract(`Assessment period`, "\\d{4}"))
-  ) %>%
-  filter(!is.na(name_key), !is.na(school_year)) %>%
-  group_by(name_key) %>%
-  summarise(g3_year = min(school_year), .groups = "drop") %>%
-  mutate(g3_start = as.Date(paste0(g3_year, "-08-20")))
+# Needs R/q1_model.R and R/pupil_table.R to have been sourced.
 
 # Last observation date in the export, used as "today" for time in school
-data_date <- max(as.Date(data_observatie$Datum), na.rm = TRUE)
-
-pupil_timing <- kids_CLASS %>%
-  transmute(name_key = make_key(Name), Start_date) %>%
-  left_join(g3_year, by = "name_key", relationship = "one-to-one") %>%
-  mutate(
-    months_to_g3 = as.numeric(g3_start - Start_date) / 30.44,
-    months_in_school = as.numeric(data_date - Start_date) / 30.44
-  )
-
-# Share of the transition goals at score >= 2 on the last observation before group 3
-transition_ready <- data_observatie %>%
-  filter(Leerpadcode %in% transition_codes, !is.na(Score), Score <= 3) %>%
-  mutate(name_key = make_key(Leerling), date = as.Date(Datum)) %>%
-  inner_join(select(pupil_timing, name_key, g3_start), by = "name_key") %>%
-  filter(!is.na(g3_start), date < g3_start) %>%
-  group_by(name_key, Leerpadcode) %>%
-  slice_max(date, n = 1, with_ties = FALSE) %>%
-  group_by(name_key) %>%
-  summarise(transition_share = mean(Score >= 2), .groups = "drop")
+data_date <- max(as_date_cell(data_observatie$Datum, "mdy"), na.rm = TRUE)
 
 bridge_data <- q1_data %>%
-  left_join(pupil_timing, by = "name_key", relationship = "one-to-one") %>%
-  left_join(transition_ready, by = "name_key", relationship = "one-to-one") %>%
-  mutate(n_activities_0 = coalesce(n_activities, 0L))
+  left_join(
+    select(pupils_table, name_key, start_date, g3_year, months_to_g3, transition_share),
+    by = "name_key", relationship = "one-to-one"
+  ) %>%
+  mutate(
+    months_in_school = as.numeric(data_date - start_date) / 30.44,
+    n_activities_0 = coalesce(n_activities, 0L)
+  )
 
 # Activities coefficient from development ~ kindergarten * activities, both centred
 fit_step <- function(step, data, outcome, kg, activities, extra = NULL) {
