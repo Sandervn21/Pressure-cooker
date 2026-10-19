@@ -31,10 +31,11 @@ a while because of the package installation.
 ## Run
 
 ```bash
-quarto render analysis.qmd
+quarto render
 ```
 
-This produces `analysis.html` with all tables and plots.
+This builds both documents: `analysis.html` with all tables and plots, and the report `report.html`.
+To build one, name it, e.g. `quarto render analysis.qmd`. In RStudio, open `Pressure-cooker.Rproj` first.
 
 ## Report
 
@@ -70,4 +71,5 @@ which hold the notebook's full conclusion behind each slide.
 | `R/conclusions.R` | The conclusion boxes, written from the results |
 | `analysis.qmd` | Notebook that runs the scripts in order and shows the results |
 | `report.qmd`, `report/` | The report slides, their numbers, figures and theme |
+| `_quarto.yml` | Quarto project: which documents to build and the settings they share |
 | `quickstart.sh`, `quickstart.bat`, `quickstart.R` | One command that sets everything up and renders both outputs |

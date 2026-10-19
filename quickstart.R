@@ -96,12 +96,10 @@ say("All data found in ", normalizePath(data_dir), ".")
 # 4. Render and open ------------------------------------------------------------------------
 
 Sys.setenv(QUARTO_R = R.home("bin"))  # let Quarto use this R
-for (doc in c("analysis.qmd", "report.qmd")) {
-  say("Rendering ", doc, " ...")
-  if (system2(quarto, c("render", doc)) != 0) {
-    say("Rendering ", doc, " failed; see the messages above.")
-    quit(save = "no", status = 1)
-  }
+say("Rendering analysis.qmd and report.qmd ...")
+if (system2(quarto, "render") != 0) {
+  say("Rendering failed; see the messages above.")
+  quit(save = "no", status = 1)
 }
 
 say("Done. Opening analysis.html and report.html in your browser.")

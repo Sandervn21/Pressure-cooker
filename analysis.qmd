@@ -1,15 +1,11 @@
 ---
 title: "Het Epos: early years and later results"
 subtitle: "Behavioral Data Science Toolbox, group 4"
-author: "Sander van Nieuwenhuijzen, Teodora Costache, Mariia Steeghs-Turchina"
 format:
   html:
     toc: true
     code-fold: true
     embed-resources: true
-execute:
-  warning: false
-  message: false
 ---
 
 This notebook contains the analysis behind our advice to Het Epos. It is written for our group.
