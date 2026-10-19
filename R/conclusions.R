@@ -242,6 +242,14 @@ consistent_predictors <- function(min_pct = 70, min_tests = 2) {
     arrange(desc(tests))
 }
 
+readiness_name <- function(outcome) {
+  unname(c(
+    transition_share = "the goals before group 3", basic_share = "the basic goals", ready_maths = "maths",
+    ready_language = "language", ready_social_emotional = "social-emotional", ready_fine_motor = "fine motor",
+    ready_gross_motor = "gross motor"
+  )[outcome])
+}
+
 summary_overview <- function() {
   reached <- filter(pupils_table, reached_g3)
   gap <- as.numeric(reached$start_date - reached$date_of_birth - 365.25 * 4) / 30.44
@@ -258,7 +266,6 @@ summary_overview <- function() {
     filter(k > 0)
   best <- goals_prediction %>% filter(str_starts(model, "\\+ readiness")) %>% slice_max(predicted_r2, n = 1, with_ties = FALSE)
   kept <- consistent_predictors()
-  short <- function(x) tolower(sub(" \\(.*", "", x))
   bullets(
     paste0(
       "**Who and how long (chapter 1).** ", nrow(reached), " pupils have reached group 3. ",
@@ -267,28 +274,33 @@ summary_overview <- function() {
       sum(reached$g3_timing == "earlier than most"), " a year earlier and ", sum(reached$g3_timing == "later than most"), " a year later."
     ),
     paste0(
-      "**More time and group 3 (chapter 2).** ", sum(all_rows$p < 0.05), " of ", nrow(all_rows),
-      if (sum(all_rows$p < 0.05) == 1) " estimates has" else " estimates have",
+      "**More time and group 3 (chapter 2).** ",
+      if (sum(all_rows$p < 0.05) == 0) paste0("None of the ", nrow(all_rows), " estimates has") else
+        paste0(sum(all_rows$p < 0.05), " of the ", nrow(all_rows), if (sum(all_rows$p < 0.05) == 1) " estimates has" else " estimates have"),
       " p < .05; for Cito maths, TMT and spelling, gains larger than ", fmt(direct_max_gain()),
       " SD per 6 extra months are ruled out."
     ),
     paste0(
       "**More time and readiness (chapter 3).** More time goes with higher ",
-      and_list(short(time_rows$label[time_rows$p < 0.05])), " readiness",
-      if (any(time_rows$p >= 0.05)) paste0(", and not with the other measures (", and_list(short(time_rows$label[time_rows$p >= 0.05])), ")") else "",
+      and_list(readiness_name(time_rows$outcome[time_rows$p < 0.05])), " readiness",
+      if (any(time_rows$p >= 0.05)) paste0(", not with ", and_list(readiness_name(time_rows$outcome[time_rows$p >= 0.05]))) else "",
       ". Class 1/2b scores maths readiness ",
       fmt(ready_class$difference_sd), " SD higher than 1/2a, while its pupils' group 3 Cito differs by ",
-      fmt(min(cito_class$difference_sd)), " to ", fmt(max(cito_class$difference_sd)), " SD."
+      fmt(min(cito_class$difference_sd)), " to ", fmt(max(cito_class$difference_sd)), " SD",
+      if (all(cito_class$p >= 0.05)) " (within chance)." else "."
     ),
     paste0(
-      "**What contributes (chapter 4).** Time accounts for at most ", fmt(max(time_v$above_noise), 3),
-      " of the variance above chance. Blocks clearly above chance: ",
-      if (nrow(above) == 0) "none" else and_list(paste0(tolower(above$block), " (", above$k, " of ", above$n, " outcomes)")), "."
+      "**What contributes (chapter 4).** Time accounts for at most ", pct(max(max(time_v$above_noise), 0), 1),
+      " of the variance beyond chance. Blocks clearly above chance within this sample: ",
+      if (nrow(above) == 0) "none" else and_list(paste0(tolower(above$block), " (", above$k, " of ", above$n, " outcomes)")),
+      "; chapter 5 tests them on new pupils."
     ),
     paste0(
-      "**Which skills (chapter 5).** For new pupils, kindergarten data predicts at most ", fmt(best$predicted_r2),
-      " of the variance in group 3 Cito (", sub(", end of group 3", "", best$Test), "). Kept in at least 70% of fits for",
-      " two or more tests: ", if (nrow(kept) == 0) "nothing" else and_list(paste0(sub("^(domain|readiness): ", "", kept$predictor), " (", kept$tests, " of 3)")), "."
+      "**Which skills (chapter 5).** For new pupils, kindergarten data predicts at most ", pct(max(best$predicted_r2, 0)),
+      " of the variance in group 3 Cito (", sub(", end of group 3", "", best$Test), "). The skills that predict most",
+      " consistently (kept in at least 70% of fits): ",
+      if (nrow(kept) == 0) "none" else and_list(paste0(sub("^(domain|readiness): ", "", kept$predictor), " (",
+                                                         ifelse(kept$tests == 3, "all 3 tests", paste(kept$tests, "of 3 tests")), ")")), "."
     )
   )
 }
@@ -306,8 +318,9 @@ recommendations_overview <- function() {
       paste0(
         "**Time in kindergarten.** Extending kindergarten is unlikely to raise group 3 Cito results by more than ",
         fmt(direct_max_gain()), " SD per 6 months.",
-        if (nrow(time_rows) > 0) paste0(" Where more time does show up is in ", and_list(tolower(sub(" \\(.*", "", time_rows$label))),
-                                       " readiness, which fits the client's question about social-emotional development.") else ""
+        if (nrow(time_rows) > 0) paste0(" Where more time does show up is in ", and_list(readiness_name(time_rows$outcome)),
+                                       " readiness at the end of kindergarten",
+                                       if ("ready_social_emotional" %in% time_rows$outcome) ", which includes the social-emotional development the client asked about." else ".") else ""
       )
     } else {
       "**Time in kindergarten.** Some estimates link time in kindergarten to group 3 outcomes; see chapter 2 before drawing a conclusion."
