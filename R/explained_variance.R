@@ -194,11 +194,12 @@ ev_feature_plot <- function(outcome, outcome_label) {
     rename(y = all_of(outcome)) %>%
     filter(!is.na(x), !is.na(y)) %>%
     mutate(
-      x = if_else(feature %in% binary_features, x + runif(n(), -0.08, 0.08), x),
+      # yes/no features are spread a little sideways (fixed seed) so the points do not overlap
+      x_shown = if_else(feature %in% binary_features, x + withr::with_seed(1, runif(n(), -0.08, 0.08)), x),
       feature = factor(ev_feature_labels[feature], levels = ev_feature_labels[features])
     ) %>%
     ggplot(aes(x, y)) +
-    geom_point(alpha = 0.5, size = 1.3) +
+    geom_point(aes(x = x_shown), alpha = 0.5, size = 1.3) +
     geom_smooth(method = "lm", formula = y ~ x, colour = "#0072B2", linewidth = 0.7) +
     facet_wrap(~feature, scales = "free_x", ncol = 5) +
     labs(x = NULL, y = outcome_label) +

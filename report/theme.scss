@@ -1,0 +1,228 @@
+/*-- scss:defaults --*/
+
+// Colours and font of the course's slide template
+$epos-orange: #F6A70A;
+$epos-dark-orange: #E98300;
+$epos-ink: #262626;
+
+$font-family-sans-serif: "Frutiger Next Pro", "Frutiger", "Open Sans", "Segoe UI", Arial, sans-serif;
+$presentation-font-size-root: 24px;
+$presentation-heading-font: $font-family-sans-serif;
+$presentation-heading-color: $epos-ink;
+$presentation-heading-font-weight: 700;
+$presentation-h2-font-size: 1.45em;
+$presentation-title-slide-text-align: left;
+$body-color: $epos-ink;
+$link-color: $epos-dark-orange;
+$backgroundColor: #ffffff;
+
+/*-- scss:rules --*/
+
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400&display=swap");
+
+// Slide frame: orange bar on the right edge and the chevron in the bottom-right corner, drawn as
+// every slide's background (backgrounds are kept in the print view too). The cover slide sets its
+// own background in report.qmd.
+.reveal .slide-background-content {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1300 900' preserveAspectRatio='none'><rect x='1269.6' y='0' width='30.4' height='900' fill='%23F6A70A'/><polygon points='1252,806.8 1204.7,856 1174.3,856 1221.7,806.8' fill='%23E98300'/><polygon points='1301,900 1253.5,806.8 1223.2,806.8 1270.8,900' fill='%23F6A70A'/></svg>");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+// The cover has only its orange block, no edge bar or chevron
+.reveal .slide-background.cover .slide-background-content,
+.reveal .slide-background.closing .slide-background-content {
+  background: none;
+}
+
+// Titles and content start where the template's placeholders do
+.reveal .slides section h2 {
+  margin: 0.2em 40px 1.1em 0;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.reveal section.slide > * {
+  margin-left: 64px !important;
+  margin-right: 70px !important;
+}
+.reveal section.slide > h2:first-child {
+  margin-top: 36px !important;
+}
+
+// Columns get the template's orange rule on top
+.reveal .columns {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 36px;
+}
+.reveal .columns .column {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.reveal .columns .column {
+  border-top: 6px solid $epos-orange;
+  padding-top: 0.6em;
+}
+.reveal .column h3,
+.reveal .column p > strong:only-child {
+  font-size: 1em;
+  margin-top: 0;
+}
+
+// Orange square bullets, a little air between items
+.reveal ul {
+  list-style-type: square;
+  margin-left: 1em;
+}
+.reveal ul li::marker {
+  color: $epos-orange;
+}
+.reveal li {
+  margin-bottom: 0.45em;
+  line-height: 1.3;
+}
+.reveal p {
+  line-height: 1.3;
+}
+.reveal p,
+.reveal li,
+.reveal .kpi-caption {
+  text-wrap: pretty;
+}
+
+// Story slides: a big number above two or three short points
+.reveal .kpi {
+  margin: 0.2em 0 0.9em 0;
+}
+.reveal .kpi-value {
+  display: block;
+  font-size: 2.7em;
+  font-weight: 700;
+  line-height: 1.05;
+  color: $epos-dark-orange;
+}
+.reveal .kpi-caption {
+  display: block;
+  margin-top: 0.3em;
+  font-size: 0.78em;
+  line-height: 1.3;
+  color: #6b6b6b;
+}
+.reveal section.slide .columns .column ul {
+  font-size: 0.86em;
+}
+
+// Cards: the answer up front and the advice at the end
+.reveal .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 26px;
+  margin-top: 0.6em;
+}
+.reveal .card {
+  background: #f6f6f6;
+  border-top: 6px solid $epos-orange;
+  padding: 28px 28px 32px 28px;
+  min-height: 330px;
+  font-size: 0.98em;
+  line-height: 1.4;
+}
+.reveal .cards-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.reveal .cards-3 .card {
+  min-height: 0;
+}
+.reveal .card p {
+  margin: 0 0 0.6em 0;
+}
+.reveal .card strong {
+  font-size: 1.12em;
+}
+.reveal .card-number {
+  display: block;
+  font-size: 2.4em;
+  font-weight: 700;
+  line-height: 1;
+  color: $epos-dark-orange;
+}
+
+// Small labels above the answer and the take-home message
+.reveal section.answer > h2::before,
+.reveal section.closing > h2::before {
+  display: block;
+  margin-bottom: 0.45em;
+  font-size: 0.48em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $epos-dark-orange;
+}
+.reveal section.answer > h2::before {
+  content: "Summary";
+}
+
+// Take-home slide: the message on the template's orange
+.reveal section.closing {
+  height: 900px;
+  background: $epos-orange;
+}
+.reveal section.slide.closing > h2:first-child {
+  margin: 290px 140px 0 110px !important;
+  font-size: 2.5em;
+  line-height: 1.15;
+}
+.reveal section.closing > h2::before {
+  content: "Take-home message";
+  color: $epos-ink;
+}
+
+// Figures fill their column
+.reveal .column img,
+.reveal .cell-output-display img {
+  max-width: 100%;
+  height: auto;
+}
+
+// Cover slide: orange block on the right, logo in the top-left corner (all in the normal flow, so
+// the print view keeps it)
+.reveal section.cover {
+  height: 900px;
+  background: linear-gradient(to right, #ffffff 36.7%, $epos-orange 36.7%);
+}
+.reveal section.cover > * {
+  margin: 0 !important;
+}
+.reveal .cover .cover-logo {
+  width: 58px !important;
+  height: auto !important;
+  margin: 22px 0 0 28px !important;
+}
+.reveal .cover .cover-drawing {
+  position: absolute;
+  left: 22px;
+  bottom: 46px;
+  width: 430px !important;
+  height: auto !important;
+  max-width: none;
+}
+.reveal .cover .cover-text {
+  margin: 230px 0 0 39% !important;
+  width: 52%;
+}
+.reveal .cover .cover-title {
+  display: block;
+  font-size: 2.3em;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 0.7em 0;
+}
+.reveal .cover .cover-group {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 700;
+}
+.reveal .cover .line-block {
+  font-size: 0.95em;
+  line-height: 1.45;
+}

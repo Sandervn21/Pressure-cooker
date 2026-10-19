@@ -15,3 +15,8 @@ analysis_files/
 
 # OS
 *.DS_Store
+
+# Report output (contains results; never commit)
+/report.html
+/report.pdf
+/report_files/
