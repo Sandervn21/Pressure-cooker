@@ -45,6 +45,15 @@ as_date_cell <- function(x, text_orders) {
   out
 }
 
+# A real learning-goal code: domain + number (TG7.3_E1), a code with a level (BV_100_JA1) or a
+# six-character number-only code (0001A6). Rows with NA, 0, 6, "75% Doelen", ... are not goals.
+is_goal_code <- function(code) {
+  code <- as.character(code)
+  !is.na(code) & (
+    str_detect(code, "^[A-Z]+[0-9]") | str_detect(code, "^[A-Z]+_[0-9]+_") | str_detect(code, "^[0-9A-F]{6}$")
+  )
+}
+
 # Numbers stored as text, some with a decimal comma ("3,1")
 as_number <- function(x) suppressWarnings(as.numeric(gsub(",", ".", trimws(as.character(x)), fixed = TRUE)))
 
@@ -172,7 +181,7 @@ obs_before_g3 <- data_observatie %>%
     date = as_date_cell(Datum, "mdy"),
     kg_class = normalise_class(Groep)
   ) %>%
-  filter(!is.na(name_key), score %in% 0:3, !is.na(date)) %>%
+  filter(!is.na(name_key), score %in% 0:3, !is.na(date), is_goal_code(code)) %>%
   inner_join(select(pupil_timing, name_key, g3_start), by = "name_key") %>%
   filter(!is.na(g3_start), date < g3_start)
 
