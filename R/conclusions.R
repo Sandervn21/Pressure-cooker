@@ -170,3 +170,45 @@ conclusion_q1_reported <- function() {
     }
   )
 }
+
+conclusion_goals_q2 <- function() {
+  check <- class_cito_check
+  ready <- check[1, ]
+  cito <- check[-1, ]
+  sub_test <- function(x) sub(", end of group 3", "", x)
+  diff_txt <- function(d) paste0(ifelse(d$difference_sd > 0, "+", ""), fmt(d$difference_sd), " SD, ", sapply(d$p, p_text))
+  pred <- goals_prediction
+  get <- function(test, m, col = "predicted_r2") pred[[col]][pred$Test == test & pred$model == m]
+  pred_txt <- map_chr(goals_cito_tests, function(test) {
+    paste0(
+      sub_test(test), ": kindergarten factors ", fmt(get(test, "+ kindergarten factors")),
+      ", with readiness by subject ", fmt(get(test, "+ readiness by subject")),
+      " (in-sample ", fmt(get(test, "+ readiness by subject", "in_sample_r2")), "), with the goals ",
+      fmt(get(test, "+ readiness by goal"))
+    )
+  })
+  kept <- goals_selection %>%
+    filter(model == "+ readiness by goal", selected_pct >= 70) %>%
+    group_by(Test) %>%
+    summarise(txt = and_list(paste0(predictor, " (", fmt(selected_pct, 0), "%)")), .groups = "drop")
+  time_kept <- goals_selection %>% filter(model == "+ readiness by goal", predictor == "months in kindergarten")
+  bullets(
+    paste0(
+      "Class 1/2b vs 1/2a: maths readiness ", diff_txt(ready), "; Cito ",
+      paste0(sub("Cito ", "", sub_test(cito$measure)), " ", diff_txt(cito), collapse = "; "), ".",
+      if (ready$p < 0.05 && all(cito$p >= 0.05)) " The classes differ in how readiness is scored, not on Cito, so readiness is compared within each class." else ""
+    ),
+    paste0(
+      "Share of variance predicted for new pupils (cross-validated): ", paste(pred_txt, collapse = "; "),
+      ". The in-sample shares of the explained-variance section are higher, as expected with this many features and pupils."
+    ),
+    paste0(
+      "Kept in at least 70% of the fits: ",
+      if (nrow(kept) == 0) "nothing" else paste0(sub_test(kept$Test), ": ", kept$txt, collapse = "; "), "."
+    ),
+    paste0(
+      "Months in kindergarten is kept in ", and_list(paste0(fmt(time_kept$selected_pct, 0), "% (", sub_test(time_kept$Test), ")")),
+      " of the fits."
+    )
+  )
+}
