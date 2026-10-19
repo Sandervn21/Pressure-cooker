@@ -20,6 +20,7 @@ The raw Excel exports must be in `data/` (see the README).
 source("R/setup.R")
 source("R/load_data.R")
 source("R/cleanup.R")
+source("R/pupil_table.R")
 source("R/q1_model.R")
 source("R/q1_robustness.R")
 source("R/q2_analysis.R")
@@ -61,6 +62,43 @@ show_table(grade_summary)
 data_extra |>
   count(Lesson, sort = TRUE) |>
   show_table()
+```
+
+# Pupils, kindergarten time and readiness
+
+One row per pupil (`pupils_table`, built in `R/pupil_table.R`). Of the
+`r nrow(pupils_table)` pupils in the master list, `r sum(pupils_table$reached_g3)` have
+reached group 3; only for them are kindergarten time, readiness and group 3 outcomes known.
+
+## Time in kindergarten
+
+The first table the school asked for: how long pupils spend in kindergarten, how many
+deviate from the regular path (against a 1 January cut-off) and how old they are when
+group 3 starts, with winter birthdays shown separately.
+
+```{r}
+show_table(kg_overview, digits = 1)
+```
+
+## Goals achieved before group 3
+
+The second table: share of the client's goals at score 2 or higher on the last
+observation before group 3.
+
+```{r}
+show_table(goals_overview, digits = 1)
+```
+
+## Columns
+
+```{r}
+show_table(pupils_table_columns)
+```
+
+Pupils who reached group 3 with a value in each column:
+
+```{r}
+show_table(pupils_table_coverage)
 ```
 
 # Q1: time in kindergarten × extracurricular activities
