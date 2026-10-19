@@ -72,8 +72,9 @@ conclusion_direct <- function() {
   })
   bullets(
     paste0(
-      sum(all_rows$p < 0.05), " of the ", nrow(all_rows), " estimates (all outcomes, per 6 months and under",
-      " 24 months, with and without controls) have p < .05."
+      if (sum(all_rows$p < 0.05) == 0) "None" else sum(all_rows$p < 0.05), " of the ", nrow(all_rows),
+      " estimates (all outcomes, per 6 months and under 24 months, with and without controls) ",
+      if (sum(all_rows$p < 0.05) <= 1) "has" else "have", " p < .05."
     ),
     paste0(
       "Per 6 more months in kindergarten, the primary Cito outcomes change by ",
@@ -86,7 +87,8 @@ conclusion_direct <- function() {
     ),
     paste0(
       "Pupils in Cito band IV-V, shortest vs longest third of kindergarten time: ",
-      paste0(equity$test, " ", fmt(equity$Short, 0), "% vs ", fmt(equity$Long, 0), "%", collapse = "; "), "."
+      paste0(c(maths = "maths", spelling = "spelling", tmt = "TMT")[tolower(equity$test)], " ", fmt(equity$Short, 0), "% vs ",
+             fmt(equity$Long, 0), "%", collapse = "; "), "."
     )
   )
 }
@@ -94,16 +96,19 @@ conclusion_direct <- function() {
 conclusion_stage1 <- function() {
   sig <- function(f) {
     d <- filter(stage1_main, factor == f, p < 0.05)
-    if (nrow(d) == 0) return("no readiness measure (p < .05)")
+    if (nrow(d) == 0) return(NULL)
     paste0(and_list(paste0(tolower(sub(" \\(.*", "", d$label)), " (", ifelse(d$per_sd > 0, "+", ""), fmt(d$per_sd), " SD)")))
   }
   bullets(
-    paste0("More time in kindergarten goes with higher ", sig("6 more months in kindergarten"), "."),
+    if (is.null(sig("6 more months in kindergarten"))) "More time in kindergarten has no clear relation with any readiness measure." else
+      paste0("More time in kindergarten goes with higher ", sig("6 more months in kindergarten"), "."),
     paste0(
-      "Class 1/2b differs from 1/2a in ", sig("Class 1/2b (vs 1/2a)"), ". Readiness is scored by the class's own",
+      if (is.null(sig("Class 1/2b (vs 1/2a)"))) "Class 1/2b and 1/2a do not clearly differ in readiness" else
+        paste0("Class 1/2b differs from 1/2a in ", sig("Class 1/2b (vs 1/2a)")), ". Readiness is scored by the class's own",
       " teachers, so a class difference can also come from scoring. Chapter 5 compares it with Cito."
     ),
-    paste0("Extracurricular lessons go with ", sig("5 more lessons per kindergarten year"), "."),
+    if (is.null(sig("5 more lessons per kindergarten year"))) "Extracurricular lessons have no clear relation with any readiness measure." else
+      paste0("Extracurricular lessons go with ", sig("5 more lessons per kindergarten year"), "."),
     paste0(
       "Pupils with support during kindergarten have lower readiness (", fmt(min(stage1_support$per_sd)), " to ",
       fmt(max(stage1_support$per_sd)), " SD), which is expected because support goes to children who are behind."
