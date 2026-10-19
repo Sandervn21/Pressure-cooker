@@ -107,7 +107,7 @@ slide_time_by_birth <- function() {
       g3_timing = factor(g3_timing, levels = names(timing_colours))
     ) %>%
     ggplot(aes(month, months_to_g3, colour = g3_timing)) +
-    geom_jitter(width = 0.18, height = 0, size = 2.2, alpha = 0.85) +
+    geom_point(position = position_jitter(width = 0.18, height = 0, seed = 1), size = 2.2, alpha = 0.85) +
     scale_colour_manual(values = timing_colours, labels = timing_labels) +
     scale_y_continuous(breaks = seq(12, 48, 6)) +
     labs(x = "Birth month", y = "Months in kindergarten") +

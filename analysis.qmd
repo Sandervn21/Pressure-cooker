@@ -241,7 +241,7 @@ pupils_table %>%
   filter(reached_g3, !is.na(birth_month), !is.na(months_to_g3)) %>%
   mutate(month = factor(month.abb[birth_month], levels = month.abb)) %>%
   ggplot(aes(month, months_to_g3, colour = g3_timing)) +
-  geom_jitter(width = 0.15, height = 0, size = 2, alpha = 0.8) +
+  geom_point(position = position_jitter(width = 0.15, height = 0, seed = 1), size = 2, alpha = 0.8) +
   scale_colour_manual(values = c(usual = "grey60", `earlier than most` = "#0072B2", `later than most` = "#D55E00"),
                       name = "Group 3") +
   labs(x = "Birth month", y = "Months in kindergarten") +
