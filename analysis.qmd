@@ -17,13 +17,14 @@ top to bottom to follow the argument, and use it as the source for the report.
 
 - **Chapters 1-5** each answer one question and end with a green **Conclusion** box.
 - **Chapter 6** puts the chapters together: what the results point to, the limitations, open
-  questions for the school, and which chapter feeds which part of the report.
+  questions for the school, and which chapter is behind each slide of the report.
 - **How this was made** notes (folded) explain every table and figure: data, steps, assumptions.
 - **Appendices** hold the reference material: data checks, the pupil table, lesson and domain
   lists, and the first versions of the analyses with what changed.
 
-All numbers in the text are computed from the data when the notebook is rendered, so they always
-match the tables. The data itself stays in `data/` and is never committed (see the README). Long
+The report for the school is a slide deck (`report.qmd`, see the README); its figures are
+simplified versions of the ones here. All numbers in the text are computed from the data when the
+notebook is rendered, so they always match the tables. The data itself stays in `data/` and is never committed (see the README). Long
 tables are folded away: click **Show table** to open them.
 
 ```{r}
@@ -122,6 +123,25 @@ classroom observations and the pupil questionnaire. Pupils are linked across fil
 - *Goals before group 3*: the 15 goals the school marked as important for a good start in group 3.
 - *Cito ability score*: the 0-5 score that is comparable across tests, at the end of group 3.
 
+**How to read the numbers.**
+
+- *SD (standard deviation)*: differences are given in standard deviations of the outcome, so
+  different tests and scales can be compared. As a rule of thumb, 0.2 SD is a small difference,
+  0.5 SD a medium one.
+- *95% interval*: the range of values that fits the data. If it does not include 0, we call the
+  difference *clear* (p < .05). An interval that is entirely small (for example below 0.25 SD) also
+  tells us that a large effect is unlikely.
+- *Share of variance (R²)*: how much of the differences between pupils a factor accounts for, from
+  0% (nothing) to 100% (everything).
+- *Chance level*: with about 75 pupils, every factor explains a little by chance. Only shares
+  clearly above the chance level mean something (chapter 4).
+- *Prediction for new pupils*: models are fitted on part of the pupils and tested on the others
+  (cross-validation). This shows how well a result carries over to pupils the model has not seen
+  (chapter 5).
+- *Kept in X% of the fits*: in chapter 5 the model is fitted 50 times on different splits of the
+  pupils; a skill that is kept in most fits is a stable predictor. This is not a test of
+  significance.
+
 # 1. Who are the pupils, and how long are they in kindergarten?
 
 Before comparing pupils, we need to know for each of them when group 3 started and how long they
@@ -217,6 +237,24 @@ per child.
 
 ```{r}
 show_table(g3_by_birth_month, digits = 0)
+```
+
+The same pupils as a figure: months in kindergarten by birth month. Pupils who moved up with their
+age group form a line that drops from January to December; those who moved up a year earlier or
+later sit about 12 months below or above it.
+
+```{r}
+#| fig-width: 9
+#| fig-height: 4.5
+pupils_table %>%
+  filter(reached_g3, !is.na(birth_month), !is.na(months_to_g3)) %>%
+  mutate(month = factor(month.abb[birth_month], levels = month.abb)) %>%
+  ggplot(aes(month, months_to_g3, colour = g3_timing)) +
+  geom_jitter(width = 0.15, height = 0, size = 2, alpha = 0.8) +
+  scale_colour_manual(values = c(usual = "grey60", `earlier than most` = "#0072B2", `later than most` = "#D55E00"),
+                      name = "Group 3") +
+  labs(x = "Birth month", y = "Months in kindergarten") +
+  theme_minimal(base_size = 12)
 ```
 
 ::: {.callout-tip title="Conclusion"}
@@ -368,7 +406,8 @@ the kindergarten class is the closest the data gets to the teaching focus in Q2.
 in each model.
 
 **Readiness** (see "Goals achieved before group 3" and `R/pupil_table.R`): for each goal the last
-observation before group 3. *Goals before group 3* and *basic goals*: share of the client's goals
+observation before group 3. Observations without a real learning-goal code (empty, `0`, `6`,
+"75% Doelen", ...) are left out; Appendix C lists them. *Goals before group 3* and *basic goals*: share of the client's goals
 at score 2 or higher. *Maths, language, social-emotional, fine and gross motor*: mean of the last
 scores (0-3) of all goals in that subject. Most pupils are close to the maximum, so differences
 are small and the scale is compressed at the top.
@@ -442,9 +481,7 @@ cat(conclusion_stage1())
 # 4. What contributes most to group 3 outcomes?
 
 Chapters 2 and 3 looked at one factor at a time. Here all kindergarten factors and readiness are
-fitted together, to see how much of the differences in group 3 each one accounts for, and where
-time in kindergarten ranks.
-
+fitted together, to see where time in kindergarten ranks.
 
 Time in kindergarten is one of several things that differ between pupils in groups 1-2. This
 section puts them side by side, in blocks: **time**, **classroom**, **extracurricular lessons**,
@@ -560,6 +597,25 @@ ev_coefficient_plot
 
 ```{r}
 show_table(ev_coefficient_table)
+```
+
+## Extracurricular lessons by kind
+
+::: {.callout-note collapse="true" title="How this table was made"}
+The rows of the model fits above for the extracurricular block, framing *kindergarten factors*:
+for each kind of lesson and each outcome, the change in the outcome (in SD) per SD more lessons of
+that kind per kindergarten year, with its 95% interval. For *Any support in group 3* a positive
+number means support more often. Families choose these lessons, and five kinds are tested against
+five outcomes, so single clear results are leads to check, not effects.
+:::
+
+```{r}
+ev_coefficient_table %>%
+  filter(block == "Extracurricular", framing == "kindergarten factors") %>%
+  transmute(kind = sub("^lessons: ", "", feature), outcome, estimate, ci_low, ci_high, p,
+            clear = if_else(p < 0.05, "yes", "")) %>%
+  arrange(kind, outcome) %>%
+  show_table()
 ```
 
 ## Explained variance per block
@@ -714,20 +770,28 @@ cat(limitations_overview())
 - What do the goal-code prefixes `DS`, `BS` and `TC`, and the number-only goal codes, stand for?
 - Does group 3 start on (about) 20 August?
 
-## Writing the report
+## The report slides
 
-Where each part of the notebook fits in the report (the structure of `Report.docx`):
+The slide text is written in `report.qmd`; its numbers come from the analysis. If the results
+change, check the wording there against the Conclusion boxes. Each slide and where it comes from:
 
-| Report section | Notebook |
+| Slide | Notebook |
 |---|---|
-| Situation, complication, request | "The question and our approach" |
-| Approach: business and data understanding | Chapter 1, Appendix A |
-| Approach: data preparation | Key definitions, chapter 1 notes, Appendix B |
-| Approach: modelling | Chapters 2-5 (the "How this was made" notes) |
-| Approach: evaluation | Chance levels (chapter 4), prediction for new pupils (chapter 5), limitations |
-| Results | The Conclusion boxes of chapters 1-5, with their main figure |
-| Conclusions, implications and recommendations | Chapter 6 |
-| What changed since the first draft | Appendix D (the activities result and the first Q2 models) |
+| Summary and take-home message | Summary, chapter 6 |
+| Situation, complication, request; how we linked the data | The question and our approach |
+| Time in kindergarten depends on the birth date | Chapter 1, "Group 3 year by birth month" |
+| More time, no higher Cito scores | Chapter 2 |
+| More time and social-emotional and gross motor development | Chapter 3 |
+| Readiness and support needs explain more than time | Chapter 4, "Explained variance per block" |
+| Kinds of extracurricular lessons | Chapter 4, "Extracurricular lessons by kind" |
+| The classes score the learning goals differently | Chapter 5, "Class check" |
+| Hearing sounds and engagement | Chapter 5, "Subjects and domains that are kept" |
+| Prediction for an individual child | Chapter 5, "Prediction for new pupils" |
+| Recommendations | Chapter 6, "What the results point to" |
+| Limitations | Chapter 6, "Limitations" |
+
+For the written parts of the assignment, Appendix A and B describe the data and its preparation,
+the "How this was made" notes the methods, and Appendix D what changed since the first draft.
 
 # Appendix A: Data checks
 
@@ -987,3 +1051,17 @@ show_table(rmse_results)
 vak_plot
 ```
 :::
+
+# Appendix E: Software
+
+The analysis runs in R with the packages below; the exact versions of all packages are recorded in
+`renv.lock` (restore them with `renv::restore()`, see the README).
+
+```{r}
+tibble(
+  software = c("R", "tidyverse", "readxl", "glmnet", "knitr", "rmarkdown"),
+  version = c(paste(R.version$major, R.version$minor, sep = "."),
+              map_chr(c("tidyverse", "readxl", "glmnet", "knitr", "rmarkdown"), ~ as.character(packageVersion(.x))))
+) %>%
+  show_table()
+```
