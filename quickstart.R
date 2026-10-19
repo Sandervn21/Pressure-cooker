@@ -105,4 +105,6 @@ for (doc in c("analysis.qmd", "report.qmd")) {
 }
 
 say("Done. Opening analysis.html and report.html in your browser.")
-for (html in c("analysis.html", "report.html")) utils::browseURL(normalizePath(html))
+utils::browseURL(normalizePath("analysis.html"))
+Sys.sleep(2)  # let the analysis tab open first, so the report ends up in front
+utils::browseURL(normalizePath("report.html"))

@@ -38,8 +38,8 @@ This produces `analysis.html` with all tables and plots.
 
 ## Report
 
-The report is a slide deck (revealjs) for the school board. All slide text is written in `report.qmd`:
-edit it there. Each slide title states one finding, so the titles alone tell the story. Numbers are
+The report is a slide deck (revealjs). All slide text is written in `report.qmd`.
+Each slide title states one finding, so the titles alone tell the story. Numbers are
 inline R (`num$...`, computed in `report/numbers.R`) so they stay correct when the data changes; the
 figures are in `report/plots.R` and the look of the course template is in `report/theme.scss`.
 
