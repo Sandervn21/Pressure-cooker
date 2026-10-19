@@ -53,9 +53,6 @@ which hold the notebook's full conclusion behind each slide.
 
 - **PDF.** Open `report.html` in Chrome and press `e` (or add `?view=print` to the address), then
   print to PDF with no margins and background graphics on.
-- **Without data.** Set `use_analysis <- FALSE` in the first chunk of `report.qmd` to render in seconds;
-  numbers show as "…" and figures as placeholders.
-- **Font.** The slides use Frutiger Next Pro where it is installed and Open Sans otherwise.
 - **Outputs are not committed:** `report.html` and `report.pdf` contain results (see `.gitignore`).
 
 ## Layout
