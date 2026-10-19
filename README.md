@@ -22,6 +22,27 @@ quarto render analysis.qmd
 
 This produces `analysis.html` with all tables and plots.
 
+## Report
+
+The report is a slide deck (revealjs) for the school board. All slide text is written in `report.qmd`:
+edit it there. Each slide title states one finding, so the titles alone tell the story. Numbers are
+inline R (`num$...`, computed in `report/numbers.R`) so they stay correct when the data changes; the
+figures are in `report/plots.R` and the look of the course template is in `report/theme.scss`.
+
+```bash
+quarto render report.qmd
+```
+
+This writes `report.html`, a single file that opens in any browser. Press `s` for the speaker notes,
+which hold the notebook's full conclusion behind each slide.
+
+- **PDF.** Open `report.html` in Chrome and press `e` (or add `?view=print` to the address), then
+  print to PDF with no margins and background graphics on.
+- **Without data.** Set `use_analysis <- FALSE` in the first chunk of `report.qmd` to render in seconds;
+  numbers show as "…" and figures as placeholders.
+- **Font.** The slides use Frutiger Next Pro where it is installed and Open Sans otherwise.
+- **Outputs are not committed:** `report.html` and `report.pdf` contain results (see `.gitignore`).
+
 ## Layout
 
 | Path | Contents |
@@ -32,3 +53,4 @@ This produces `analysis.html` with all tables and plots.
 | `R/q1_model.R` | Q1: kindergarten time × extracurricular activities regression |
 | `R/q2_analysis.R` | Q2: learning goals vs CITO correlations and cross-validated models |
 | `analysis.qmd` | Notebook that runs the scripts in order and shows the results |
+| `report.qmd`, `report/` | The report slides: storyline, figures and theme |
