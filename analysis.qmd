@@ -119,44 +119,92 @@ data_extra |>
 
 One row per pupil (`pupils_table`, built in `R/pupil_table.R`). Of the
 `r nrow(pupils_table)` pupils in the master list, `r sum(pupils_table$reached_g3)` have
-reached group 3; only for them are kindergarten time, readiness and group 3 outcomes known.
+reached group 3, so their time in kindergarten and readiness are known;
+`r sum(pupils_table$reached_g3 & pupils_table$has_cito_g3)` of them also have grade 3 Cito
+results (the others started group 3 this school year).
+
+## When group 3 started
+
+::: {.callout-note collapse="true" title="How this table was made"}
+For every pupil, the school year in which group 3 started is taken from the first available
+source, in this order:
+
+1. **Cito grade 3**: the first school year with a `Grade 3` result (for example
+   `mid 2022-2023` gives 2022/23).
+2. **Maths tests block 3**: the school year of the first test of a block 3.x
+   (`UvA_testresults_math.xlsx`).
+3. **Questionnaire group 3**: the school year of the first answer in `Leerjaar` 3.
+4. **Current year group**: counted back from the export's school year
+   (`r export_school_year`/`r export_school_year + 1`): a pupil now in group *g* started
+   group 3 *g* − 3 years ago. This is the only source for pupils who just started group 3.
+
+A pilot on the real data compared these sources, and also the leaving cohort and the last
+kindergarten observation: wherever two dated sources (1-3) overlap they give the same year for
+every pupil. Counting back (4) and the Cito leaving year are a year behind for a handful of
+pupils; those pupils most likely **repeated a year after group 3** and are counted in the last
+row. Group 3 is assumed to start on **20 August** of its school year.
+:::
+
+```{r}
+show_table(g3_sources_overview)
+```
 
 ## Time in kindergarten
 
 The first table the school asked for: how long pupils spend in kindergarten, how many
-deviate from the regular path and how old they are when group 3 starts, with winter
-birthdays shown separately.
+started group 3 earlier or later than most children born in the same year, and how old they
+are when group 3 starts, with winter birthdays shown separately.
 
 ::: {.callout-note collapse="true" title="How this table was made"}
-**Pupils.** Everyone in the master list (`Pupils.xlsx`) with at least one Cito result in grade 3.
-Pupils still in groups 0-2 have no end date yet and are left out.
+**Pupils.** Everyone in the master list who has reached group 3 (see the table above),
+including pupils who started group 3 this school year.
 
 **Steps per pupil:**
 
-1. **Start at school**: `Start date` in `Pupils.xlsx`. This includes any time in the starter
-   group, and for pupils who came from another school it is their first day at Het Epos.
-2. **Start of group 3**: the first school year with a grade 3 Cito result (for example
-   `mid 2022-2023` gives 2022/23), assumed to begin on **20 August** of that year.
+1. **Start at school**: `Start date` in `Pupils.xlsx`.
+2. **Start of group 3**: 20 August of the school year from the table above.
 3. **Months in kindergarten** = days from step 1 to step 2, divided by 30.44.
-4. **Regular path**: with a 1 January cut-off, a child born in year *B* starts group 3 in
-   August of *B* + 6. A pupil who started group 3 a year earlier **moved up early**; a year
-   later (for example after repeating a kindergarten year) **stayed longer**.
-5. **Age at group 3**: age on 20 August of the group 3 year.
+4. **Age at group 3**: age on 20 August of the group 3 year.
+5. **Earlier / later than most**: group 3 year minus birth year is the same for most pupils
+   (`r pupils_table %>% filter(reached_g3) %>% count(g3_year_offset) %>% slice_max(n, n = 1) %>% pull(g3_year_offset)`
+   years). Pupils with one year less started group 3 **earlier than most** children born in the
+   same year, pupils with one year more **later than most**. No cut-off date is assumed: the
+   school decides per child, and the table below shows how that works out by birth month.
+
+**What the data shows about start dates.** In this export every pupil's `Start date` lies at
+or just after their 4th birthday (on average a few days after it), including pupils whose
+4th birthday falls before the school opened in 2020. The start date was probably derived from
+the (anonymised) birth date. As a result, months in kindergarten is in effect **(age at the
+start of group 3 − 4) × 12**: time in kindergarten and age at group 3 cannot be separated in
+this data, and the only differences that come from a decision are the pupils who started group
+3 earlier or later than most.
 
 **Rows.** All pupils who reached group 3, then the same split by birth quarter, then the pupils
 born in October-December (the "autumn children" the school asked about).
 
 **Columns.** `pupils`: number of pupils; `mean_months`, `sd_months`, `min_months`, `max_months`:
-months in kindergarten; `moved_up_early`, `stayed_longer`: number of pupils off the regular path;
+months in kindergarten; `group3_earlier_than_most`, `group3_later_than_most`: number of pupils;
 `mean_age_at_g3`: average age in years at the start of group 3.
 
-**Assumptions to check with the school.** The 20 August start date; the 1 January cut-off; and
-that the first grade 3 Cito result marks the first year in group 3 (a pupil who missed every
-grade 3 test is missing here).
+**To check with the school.** How the start date and birth date were anonymised; who decides
+when a child moves to group 3, and on what basis; the 20 August start of group 3.
 :::
 
 ```{r}
 show_table(kg_overview, digits = 1)
+```
+
+### Group 3 year by birth month
+
+::: {.callout-note collapse="true" title="How this table was made"}
+Pupils who reached group 3, by birth month: how many started group 3 in the year they turned
+5, 6 or 7 (group 3 year minus birth year). A rule with a fixed cut-off date would show as a
+clean switch between two birth months; differences spread over the year point to decisions
+per child.
+:::
+
+```{r}
+show_table(g3_by_birth_month, digits = 0)
 ```
 
 ## Goals achieved before group 3
@@ -192,7 +240,7 @@ show_table(goals_overview, digits = 1)
 ::: {.callout-note collapse="true" title="How this table was made"}
 A description of each group of columns in `pupils_table`. The exact steps for every column are
 in `R/pupil_table.R`; time windows always follow the pupil's own start of group 3 (20 August of
-the first year with a grade 3 Cito result). Lessons and support during kindergarten only count
+the group 3 year, see "When group 3 started"). Lessons and support during kindergarten only count
 school years the export covers (lessons from 2021/22, support from the first year in the
 support file), so pupils from the first cohorts can have fewer kindergarten years with data.
 :::
