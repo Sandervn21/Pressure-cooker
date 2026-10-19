@@ -3,7 +3,21 @@
 Analysis for Het Epos (Behavioral Data Science Toolbox, group 4): how time in kindergarten, learning goals and
 extracurricular activities in groups 1–2 relate to results in group 3 and later.
 
-## Setup
+## Quickstart
+
+Clone the repository and run one command from its folder:
+
+```bash
+./quickstart.sh
+```
+
+On Windows, double-click `quickstart.bat` instead. The script checks that R and Quarto are installed,
+installs the exact package versions from `renv.lock`, and checks that the Het Epos exports are in
+`data/`. If something is missing, it says what to install or which files to put where, and waits.
+Then it renders `analysis.html` and `report.html` and opens them in the browser. The first run takes
+a while because of the package installation.
+
+## Setup by hand
 
 1. Install [R](https://cran.r-project.org/) (4.6) and [Quarto](https://quarto.org/).
 2. Restore the package environment from the project folder:
@@ -56,3 +70,4 @@ which hold the notebook's full conclusion behind each slide.
 | `R/conclusions.R` | The conclusion boxes, written from the results |
 | `analysis.qmd` | Notebook that runs the scripts in order and shows the results |
 | `report.qmd`, `report/` | The report slides, their numbers, figures and theme |
+| `quickstart.sh`, `quickstart.bat`, `quickstart.R` | One command that sets everything up and renders both outputs |
