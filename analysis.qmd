@@ -12,20 +12,21 @@ execute:
   message: false
 ---
 
-This notebook is the analysis behind our advice to Het Epos. It is written for the team: read it
-top to bottom to follow the argument, and use it as the source for the report.
+This notebook contains the analysis behind our advice to Het Epos. It is written for our group.
+Read it from top to bottom to follow the analysis, and use it as the source for the report.
 
 - **Chapters 1-5** each answer one question and end with a green **Conclusion** box.
-- **Chapter 6** puts the chapters together: what the results point to, the limitations, open
-  questions for the school, and which chapter is behind each slide of the report.
-- **How this was made** notes (folded) explain every table and figure: data, steps, assumptions.
+- **Chapter 6** puts the chapters together: what the results point to, the limitations, and which
+  chapter is behind each slide of the report.
+- **How this was made** notes (folded) explain how each table and figure was made (data, steps and
+  assumptions).
 - **Appendices** hold the reference material: data checks, the pupil table, lesson and domain
   lists, and the first versions of the analyses with what changed.
 
 The report for the school is a slide deck (`report.qmd`, see the README); its figures are
 simplified versions of the ones here. All numbers in the text are computed from the data when the
-notebook is rendered, so they always match the tables. The data itself stays in `data/` and is never committed (see the README). Long
-tables are folded away: click **Show table** to open them.
+notebook is rendered, so they always match the tables. The data itself stays in `data/` and is
+never committed (see the README). Long tables are folded away: click **Show table** to open them.
 
 ```{r}
 #| label: setup
@@ -64,7 +65,7 @@ show_table <- function(x, digits = 3, collapse_after = 15) {
 
 # Summary
 
-The key result of each chapter, in one line:
+The main result of each chapter:
 
 ```{r}
 #| output: asis
@@ -84,8 +85,9 @@ Het Epos asked two questions about the first two years of primary school (groups
   achievement later on? The two kindergarten classes differ in how strongly they work towards
   these goals.
 
-We answer both with one picture: things that differ between pupils in kindergarten, the skills
-they have when kindergarten ends, and how they do in group 3.
+We look at both questions with the same setup. We relate things that differ between pupils in
+kindergarten to the skills they have at the end of kindergarten, and both of these to their
+results in group 3.
 
 ```{mermaid}
 flowchart LR
@@ -97,16 +99,16 @@ flowchart LR
   A -- "chapter 2" --> C
 ```
 
-- **Chapter 1** pins down who the pupils are, when they started group 3 and how long they spent
-  in kindergarten: the basis for everything else, and the two tables the school asked for.
-- **Chapter 2** follows the bottom arrow: does more time in kindergarten go with better group 3
-  results? (Q1)
-- **Chapter 3** follows the first arrow: what does more time, the class and extracurricular lessons
-  go with at the end of kindergarten? (Q1 and Q2)
-- **Chapter 4** puts all kindergarten factors and readiness side by side: how much of the
-  differences in group 3 does each account for?
-- **Chapter 5** zooms into readiness: which subjects, learning domains and goals carry it, and does
-  that hold for pupils the model has not seen? (Q2)
+- **Chapter 1** describes the pupils, when they started group 3 and how long they spent in
+  kindergarten. The later chapters build on this, and it contains the two tables the school asked
+  for.
+- **Chapter 2** looks at whether more time in kindergarten goes with better group 3 results (Q1).
+- **Chapter 3** looks at how time, the class and extracurricular lessons are related to readiness
+  at the end of kindergarten (Q1 and Q2).
+- **Chapter 4** fits all kindergarten factors and readiness together and shows how much of the
+  differences in group 3 each one explains.
+- **Chapter 5** looks at readiness in more detail: which subjects, learning domains and goals are
+  related to group 3 results, and whether this holds for pupils the model has not seen (Q2).
 
 **Data.** Eight exports from the school: the pupil list, teacher observations of learning goals in
 groups 0-2, Cito (LiB) results, maths method tests, extracurricular lessons, support records, CLASS
@@ -125,28 +127,22 @@ classroom observations and the pupil questionnaire. Pupils are linked across fil
 
 **How to read the numbers.**
 
-- *SD (standard deviation)*: differences are given in standard deviations of the outcome, so
-  different tests and scales can be compared. As a rule of thumb, 0.2 SD is a small difference,
-  0.5 SD a medium one.
-- *95% interval*: the range of values that fits the data. If it does not include 0, we call the
-  difference *clear* (p < .05). An interval that is entirely small (for example below 0.25 SD) also
-  tells us that a large effect is unlikely.
-- *Share of variance (R²)*: how much of the differences between pupils a factor accounts for, from
-  0% (nothing) to 100% (everything).
-- *Chance level*: with about 75 pupils, every factor explains a little by chance. Only shares
-  clearly above the chance level mean something (chapter 4).
-- *Prediction for new pupils*: models are fitted on part of the pupils and tested on the others
-  (cross-validation). This shows how well a result carries over to pupils the model has not seen
-  (chapter 5).
-- *Kept in X% of the fits*: in chapter 5 the model is fitted 50 times on different splits of the
-  pupils; a skill that is kept in most fits is a stable predictor. This is not a test of
-  significance.
+- *SD*: differences in standard deviations of the outcome, so tests can be compared (0.2 is small,
+  0.5 medium).
+- *95% interval*: the values that fit the data. If it excludes 0 we call the difference *clear*
+  (p < .05); if it only holds small values, a large effect is unlikely.
+- *Share of variance (R²)*: how much of the differences between pupils a factor explains (0-100%).
+- *Chance level*: what a factor explains by chance with about 75 pupils (chapter 4).
+- *Prediction for new pupils*: models fitted on some pupils and tested on the others
+  (cross-validation, chapter 5).
+- *Kept in X% of the fits*: how often a skill is selected over 50 fits on different splits. This
+  measures stability and is not a significance test.
 
 # 1. Who are the pupils, and how long are they in kindergarten?
 
-Before comparing pupils, we need to know for each of them when group 3 started and how long they
-spent in kindergarten. The data has no single column for either, so this chapter builds them, checks
-them, and produces the two overview tables the school asked for.
+To compare pupils, we first need to know when each of them started group 3 and how long they spent
+in kindergarten. The data has no column for either, so in this chapter we derive both, check them,
+and make the two overview tables the school asked for.
 
 
 One row per pupil (`pupils_table`, built in `R/pupil_table.R`). Of the
@@ -183,9 +179,9 @@ show_table(g3_sources_overview)
 
 ## Time in kindergarten
 
-The first table the school asked for: how long pupils spend in kindergarten, how many
-started group 3 earlier or later than most children born in the same year, and how old they
-are when group 3 starts, with winter birthdays shown separately.
+This is the first table the school asked for. It shows how long pupils spend in kindergarten, how
+many started group 3 earlier or later than most children born in the same year, and how old they
+are when group 3 starts, with autumn birthdays shown separately.
 
 ::: {.callout-note collapse="true" title="How this table was made"}
 **Pupils.** Everyone in the master list who has reached group 3 (see the table above),
@@ -200,16 +196,17 @@ including pupils who started group 3 this school year.
 5. **Earlier / later than most**: group 3 year minus birth year is the same for most pupils
    (`r pupils_table %>% filter(reached_g3) %>% count(g3_year_offset) %>% slice_max(n, n = 1) %>% pull(g3_year_offset)`
    years). Pupils with one year less started group 3 **earlier than most** children born in the
-   same year, pupils with one year more **later than most**. No cut-off date is assumed: the
-   school decides per child, and the table below shows how that works out by birth month.
+   same year, pupils with one year more **later than most**. We do not assume a cut-off
+   date, because the school decides per child. The table below shows how this works out by birth
+   month.
 
 **What the data shows about start dates.** In this export every pupil's `Start date` lies at
 or just after their 4th birthday (on average a few days after it), including pupils whose
 4th birthday falls before the school opened in 2020. The start date was probably derived from
-the (anonymised) birth date. As a result, months in kindergarten is in effect **(age at the
-start of group 3 − 4) × 12**: time in kindergarten and age at group 3 cannot be separated in
-this data, and the only differences that come from a decision are the pupils who started group
-3 earlier or later than most.
+the (anonymised) birth date. As a result, months in kindergarten is basically **(age at the
+start of group 3 − 4) × 12**. Time in kindergarten and age at group 3 cannot be separated in this
+data. The only differences that come from a decision are the pupils who started group 3 earlier
+or later than most.
 
 **Rows.** All pupils who reached group 3, then the same split by birth quarter, then the pupils
 born in October-December (the "autumn children" the school asked about).
@@ -217,9 +214,6 @@ born in October-December (the "autumn children" the school asked about).
 **Columns.** `pupils`: number of pupils; `mean_months`, `sd_months`, `min_months`, `max_months`:
 months in kindergarten; `group3_earlier_than_most`, `group3_later_than_most`: number of pupils;
 `mean_age_at_g3`: average age in years at the start of group 3.
-
-**To check with the school.** How the start date and birth date were anonymised; who decides
-when a child moves to group 3, and on what basis; the 20 August start of group 3.
 :::
 
 ```{r}
@@ -230,9 +224,9 @@ show_table(kg_overview, digits = 1)
 
 ::: {.callout-note collapse="true" title="How this table was made"}
 Pupils who reached group 3, by birth month: how many started group 3 in the year they turned
-5, 6 or 7 (group 3 year minus birth year). A rule with a fixed cut-off date would show as a
-clean switch between two birth months; differences spread over the year point to decisions
-per child.
+5, 6 or 7 (group 3 year minus birth year). With a fixed cut-off date we would see a clean switch
+between two birth months. Differences spread over the year suggest that the school decides per
+child.
 :::
 
 ```{r}
@@ -267,8 +261,8 @@ cat(conclusion_timing())
 
 ## Goals achieved before group 3
 
-The second table: what share of the goals that matter for group 3 pupils had achieved when
-group 3 started.
+This is the second table the school asked for. It shows what share of the goals that matter for
+group 3 pupils had achieved when group 3 started.
 
 ::: {.callout-note collapse="true" title="How this table was made"}
 **Goal lists.** From the client's materials: 15 goals marked as important before group 3, and
@@ -281,8 +275,8 @@ group 3 started.
 2. For each goal, keep the **last** observation.
 3. A goal counts as **achieved** when that last score is **2 or higher** (2 = the child has some
    notion of the goal, 3 = mastered).
-4. The pupil's percentage = achieved goals / goals of the list that were observed. Goals never
-   observed for that pupil are left out, not counted as missed.
+4. The pupil's percentage = achieved goals / goals of the list that were observed. Goals that
+   were never observed for a pupil are left out of that pupil's percentage.
 
 **Columns.** `goals_in_list`: goals in the client's list; `pupils`: pupils with at least one
 of them observed; `mean_pct_achieved`: average of the pupils' percentages; `min_pct`, `max_pct`:
@@ -303,12 +297,9 @@ cat(conclusion_goals())
 
 # 2. Does more time in kindergarten pay off in group 3? (Q1)
 
-The coordinator's question first, in its simplest form: compare pupils with more and less time
-in kindergarten on how they do in group 3, without looking at what happened in kindergarten.
-
-
-Do pupils who spent longer in kindergarten do better in group 3? Each outcome is compared with
-time in kindergarten directly, without looking at what happened in kindergarten itself.
+We start with the simplest version of Q1: do pupils who spent more time in kindergarten do better
+in group 3? Each outcome is compared with time in kindergarten directly, without looking at what
+happened in kindergarten itself.
 
 ::: {.callout-note collapse="true" title="How these tables were made"}
 **Pupils.** Pupils who reached group 3 (see "When group 3 started"). Cito outcomes exist only
@@ -343,9 +334,9 @@ than two years in kindergarten (mostly children born in the autumn) with everyon
 **Reading the results.** Several outcomes are tested, so a single p-value below .05 can occur by
 chance. With about 75 pupils only moderate differences can be detected; the confidence interval
 shows which effect sizes the data still allows. Pupils who started group 3 earlier or later than
-most were placed on purpose, probably based on how ready they seemed: that can make longer
-kindergarten look worse (children kept back may have been behind) or shorter kindergarten look
-better (children moved up early may have been ahead).
+most were placed on purpose, probably based on how ready they seemed. This can make a longer
+kindergarten look worse (children kept back may have been behind) or a shorter one look better
+(children moved up early may have been ahead).
 :::
 
 Per 6 extra months in kindergarten:
@@ -390,15 +381,10 @@ cat(conclusion_direct())
 
 # 3. What does more time go with at the end of kindergarten? (Q1, Q2)
 
-Group 3 Cito is one place where more time could show. The client also asked about social-emotional
-and executive development, which the teachers observe in kindergarten itself. This chapter looks at
-readiness at the end of kindergarten, and at the other differences between pupils there: their
-class (the teaching focus of Q2) and their extracurricular lessons.
-
-
-Which groups 1-2 factors go with how many goals a pupil has reached when group 3 starts?
-Time in kindergarten answers the first part of Q1 (does more time mean more goals reached?);
-the kindergarten class is the closest the data gets to the teaching focus in Q2.
+Group 3 Cito is one place where more time could show. The school also asked about social-emotional
+and executive development, which the teachers observe during kindergarten. In this chapter we look
+at readiness at the end of kindergarten and how it is related to time in kindergarten, the class
+and extracurricular lessons. The class is the closest the data gets to the teaching focus in Q2.
 
 ::: {.callout-note collapse="true" title="How these tables were made"}
 **Pupils.** Pupils who reached group 3, including those who started group 3 this school year
@@ -407,9 +393,9 @@ in each model.
 
 **Readiness** (see "Goals achieved before group 3" and `R/pupil_table.R`): for each goal the last
 observation before group 3. Observations without a real learning-goal code (empty, `0`, `6`,
-"75% Doelen", ...) are left out; Appendix C lists them. *Goals before group 3* and *basic goals*: share of the client's goals
-at score 2 or higher. *Maths, language, social-emotional, fine and gross motor*: mean of the last
-scores (0-3) of all goals in that subject. Most pupils are close to the maximum, so differences
+"75% Doelen", ...) are left out; Appendix C lists them. *Goals before group 3* and *basic goals*:
+share of the client's goals at score 2 or higher. *Maths, language, social-emotional, fine and
+gross motor*: mean of the last scores (0-3) of all goals in that subject. Most pupils are close to the maximum, so differences
 are small and the scale is compressed at the top.
 
 **Factors.**
@@ -432,8 +418,8 @@ it gives the estimates in the outcome's own units.
 
 **Support during kindergarten** has its own model (support, time in kindergarten, class and
 cohort), on fewer pupils because the support file starts later. Children usually get support
-*because* they are behind, so a negative estimate shows who needed help, not that help lowered
-readiness.
+*because* they are behind, so a negative estimate shows which children needed help. It does not
+mean that the help lowered readiness.
 :::
 
 ```{r}
@@ -462,8 +448,8 @@ show_table(stage1_table(stage1_support))
 CLASS observations (`CLASS.xlsx`) of the two kindergarten classes, averaged per school year
 (observations are assigned to a school year by their date or quarter). Domain totals are
 averages of the dimension scores on a 1-7 scale; `observations` is the number of CLASS
-observations behind each row. CLASS is recorded per class, not per pupil, so it is shown here
-next to the class comparison rather than used in the models.
+observations behind each row. CLASS is recorded per class instead of per pupil, so we show it
+here next to the class comparison and do not use it in these models.
 :::
 
 ```{r}
@@ -480,13 +466,10 @@ cat(conclusion_stage1())
 
 # 4. What contributes most to group 3 outcomes?
 
-Chapters 2 and 3 looked at one factor at a time. Here all kindergarten factors and readiness are
-fitted together, to see where time in kindergarten ranks.
-
-Time in kindergarten is one of several things that differ between pupils in groups 1-2. This
-section puts them side by side, in blocks: **time**, **classroom**, **extracurricular lessons**,
-**support** and, for the group 3 outcomes, **readiness** at the end of kindergarten. It asks how
-much of the differences between pupils each block accounts for.
+Chapters 2 and 3 looked at one factor at a time. In this chapter we fit all kindergarten factors
+together, in blocks: **time**, **classroom**, **extracurricular lessons**, **support** and, for the
+group 3 outcomes, **readiness** at the end of kindergarten. We then look at how much of the
+differences between pupils each block explains, and where time in kindergarten ranks.
 
 ::: {.callout-note collapse="true" title="How this section was made"}
 **Pupils.** Pupils who reached group 3 with a kindergarten class (for the goals) or with the
@@ -516,26 +499,23 @@ outcome are in standard deviations, so the fit coefficients are comparable: the 
 outcome (in SD) per SD of the feature, or between the two groups for yes/no features.
 
 **Explained variance per block.** The model is refitted with every combination of blocks. A
-block's *share* is how much it adds to the explained variance (R², on top of cohort), averaged
-over every order in which the blocks can be added; the shares add up to the model's total.
-*Lost without block* is how much R² drops when only that block is removed. The 95% intervals come
-from refitting on 300 resamples of the pupils. A resample always finds some R² by chance, so these
-intervals sit somewhat high (a share can even fall just below its own interval); compare with the
-chance level below.
+block's *share* is what it adds to R² (on top of cohort), averaged over all orders in which blocks
+can be added; the shares add up to the total R². *Lost without block*: the drop in R² when only that
+block is removed. The 95% intervals come from 300 bootstrap resamples; they sit somewhat high,
+because a resample always finds some R² by chance.
 
-**Chance level.** With about 75 pupils, a block gets some R² even if it has nothing to do with the
-outcome, and more so the more features it has. The *noise level* is a block's average share when
-the outcome is shuffled (300 times), so that nothing can truly be explained; *above noise* is the
-share minus that level. Only shares clearly above the noise level mean something.
+**Chance level.** The *noise level* is a block's average share when the outcome is shuffled 300
+times, so that nothing can truly be explained. Blocks with more features get a higher level.
+*Above noise* is the share minus the noise level; only shares clearly above it mean something.
 
 **Two framings for the group 3 outcomes.** *Kindergarten factors*: time, classroom,
 extracurricular, support. *Kindergarten factors + readiness*: adds what the child could do at the
 end of kindergarten. Readiness is partly a result of the other blocks, so in the second framing
 it takes over part of their share.
 
-**Reading the results.** These are associations, not effects: pupils were not assigned to more
-time, a class or support at random. The shares describe which differences between pupils go
-together with differences in the outcome.
+**Reading the results.** These are associations. Pupils were not assigned to more time, a class or
+support at random, so we cannot say that a block causes the differences. The shares describe which
+differences between pupils go together with differences in the outcome.
 :::
 
 ## Features against the outcomes
@@ -589,6 +569,23 @@ ev_feature_plot("support_g3", "Any support in group 3")
 
 ## Model fits
 
+One linear regression per outcome with all features and the leaving cohort as a control. Each dot
+is a feature's coefficient: the difference in the outcome (SD) per SD more of the feature, or
+between the two groups for a yes/no feature, with the other features held constant. A 95% interval
+that does not cross 0 is a clear association.
+
+::: {.callout-note collapse="true" title="How this figure and table were made"}
+- Fitting all features together separates features that move together (for example, older pupils
+  have had more lesson years); chapters 2 and 3 compare one factor at a time.
+- The figure shows the model with readiness for the group 3 outcomes, and the model without
+  readiness for *Goals before group 3 achieved* (readiness is part of that outcome). The table has
+  both framings.
+- Outcomes and continuous features are standardised. *Any support in group 3* is a linear
+  probability model: positive means support more often.
+- With about 75 pupils and up to 15 features, some clear coefficients are expected by chance; the
+  block shares below, compared with their chance level, are the more robust summary.
+:::
+
 ```{r}
 #| fig-width: 12
 #| fig-height: 7
@@ -606,7 +603,8 @@ The rows of the model fits above for the extracurricular block, framing *kinderg
 for each kind of lesson and each outcome, the change in the outcome (in SD) per SD more lessons of
 that kind per kindergarten year, with its 95% interval. For *Any support in group 3* a positive
 number means support more often. Families choose these lessons, and five kinds are tested against
-five outcomes, so single clear results are leads to check, not effects.
+five outcomes, so a single clear result is something to look into further. It does not show an
+effect of the lessons.
 :::
 
 ```{r}
@@ -652,23 +650,26 @@ cat(conclusion_variance())
 
 In chapter 4, readiness at the end of kindergarten accounted for
 `r paste0(sub(", end of group 3", "", filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$outcome), " ", fmt(filter(ev_variance_table, block == "Readiness", outcome %in% goals_cito_tests)$r2_share), collapse = ", ")`
-of the variance in group 3 Cito. Those shares describe the pupils the models were fitted on.
-This section checks how much of it holds for pupils a model has not seen, and looks inside the
-readiness block at three levels: which subjects, which learning domains within them, and which
-of the school's 15 goals before group 3 carry it.
+of the variance in group 3 Cito. Those shares are for the pupils the models were fitted on.
+In this chapter we check how much of this holds for pupils a model has not seen, and we look at
+readiness at three levels: subjects, the learning domains within them, and the school's 15 goals
+before group 3.
 
 ::: {.callout-note collapse="true" title="How this section was made"}
 **Class check.** For maths readiness (scored by the teachers) and for each group 3 Cito test: the
 difference between class 1/2b and 1/2a in standard deviations, with the leaving cohort as a
-control. If the classes differ on readiness but not on Cito, the readiness difference is in how
-the teachers score, which is why readiness is compared with classmates everywhere else.
+control. If the classes differ on readiness and are similar on Cito, the readiness difference most
+likely comes from how the teachers score. This is why readiness is compared with classmates
+everywhere else.
 
 **Models.** The cross-validated elastic net from the original Q2 analysis (`R/cv_models.R`):
 missing values filled with the training folds' median and features standardised inside each
 training split, the penalty chosen by an inner 5-fold split, 5 folds repeated 10 times (50 fits per
-model and test). Six models, each adding one block, the same blocks as in chapter 4: *average only*; *cohort*; *+ kindergarten factors* (time, classroom, extracurricular,
+model and test). Six models, each adding one block, the same blocks as in chapter 4: *average
+only*; *cohort*; *+ kindergarten factors* (time, classroom, extracurricular,
 support); *+ readiness by subject* (maths, language, social-emotional, motor, compared with
-classmates); *+ readiness by domain* (the learning domains of those subjects, see Appendix C); *+ readiness by goal* (the last score before group 3 on each of the 15 goals before
+classmates); *+ readiness by domain* (the learning domains of those subjects, see Appendix C);
+*+ readiness by goal* (the last score before group 3 on each of the 15 goals before
 group 3, minus the class average). The cohort model is an ordinary regression, the others the
 elastic net.
 
@@ -688,9 +689,9 @@ R² of the same blocks in chapter 4, fitted on all pupils.
 
 **Selection.** For the domain model (subjects and domains) and for the model with all blocks
 (goals), how often each feature has a non-zero coefficient across the 50 fits, and whether it is
-mostly positive when kept. Kept often means a stable
-predictor; it is not a test of significance. Goals that almost every pupil masters vary little
-and are rarely kept, which does not make them unimportant.
+mostly positive when kept. A feature that is kept
+often is a stable predictor. This is not a test of significance. Goals that almost every pupil
+masters vary little and are rarely kept, but they can still be important.
 :::
 
 ## Class check
@@ -760,15 +761,6 @@ cat(recommendations_overview())
 #| echo: false
 cat(limitations_overview())
 ```
-
-## Questions for the school
-
-- How were the birth dates and start dates anonymised? Are the start dates real first school days?
-- Who decides when a child moves to group 3 earlier or later than most, and on what grounds?
-- Do the two kindergarten classes use shared guidelines for scoring the learning goals?
-- Is there support data from before the current support file, for the first cohorts?
-- What do the goal-code prefixes `DS`, `BS` and `TC`, and the number-only goal codes, stand for?
-- Does group 3 start on (about) 20 August?
 
 ## The report slides
 
@@ -846,7 +838,7 @@ show_table(score_summary)
 One row per Cito test. For every pupil, all their scores on that test are averaged, over every
 grade (3 to 6) and both assessment moments (mid and end of year); the columns summarise those
 per-pupil averages across pupils. Cito scores grow with grade and each test has its own scale,
-so these numbers describe the export rather than a single moment.
+so these numbers describe the whole export.
 :::
 
 ```{r}
@@ -976,8 +968,8 @@ q1_plot
 
 The model above changes one thing at a time, from the reported specification towards
 pupils who reached group 3, their actual time until group 3, and the transition goals
-achieved before group 3. If the activities coefficient changes sign or vanishes at a
-step, that choice drives the result. `b_per_sd_outcome` puts the outcomes on one scale.
+achieved before group 3. If the activities coefficient changes sign or disappears at a
+step, that choice is what drives the result. `b_per_sd_outcome` puts the outcomes on one scale.
 
 ::: {.callout-note collapse="true" title="How this table was made"}
 Each row refits the regression of the section above with one more change than the row before:
