@@ -1,6 +1,6 @@
 # Cross-validated elastic net, from the Q2 analysis (Teodora): training-only imputation and
 # scaling, penalty tuned by inner cross-validation, repeated outer 5-fold cross-validation.
-# Used by R/q2_analysis.R and R/goals.R. Data must have the outcome in `cito_score` and a
+# Used by R/goals.R. Data must have the outcome in `cito_score` and a
 # `name_key` column.
 
 # Training-only median imputation and standardization.

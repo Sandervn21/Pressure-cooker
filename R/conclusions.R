@@ -159,23 +159,6 @@ conclusion_variance <- function() {
   )
 }
 
-conclusion_q1_reported <- function() {
-  b <- q1_bridge
-  bullets(
-    paste0(
-      "As reported, each extra activity goes with ", fmt(b$activities_b[1], 3), " higher development (",
-      p_text(b$p[1]), "). Controlling for months in school changes this to ", fmt(b$activities_b[3], 3), " (",
-      p_text(b$p[3]), "), and among pupils who reached group 3 it is ", fmt(b$activities_b[4], 3), " (",
-      p_text(b$p[4]), ")."
-    ),
-    if (b$p[1] < 0.05 && b$p[3] >= 0.05) {
-      "Older pupils have both more lessons (counted over all years) and higher observation averages, so the reported effect largely reflects age."
-    } else {
-      "Older pupils have both more lessons (counted over all years) and higher observation averages; compare the steps in the table to see how much of the effect that explains."
-    }
-  )
-}
-
 conclusion_goals_q2 <- function() {
   check <- class_cito_check
   ready <- check[1, ]
