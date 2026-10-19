@@ -20,8 +20,8 @@ Read it from top to bottom to follow the analysis, and use it as the source for 
   chapter is behind each slide of the report.
 - **How this was made** notes (folded) explain how each table and figure was made (data, steps and
   assumptions).
-- **Appendices** hold the reference material: data checks, the pupil table, lesson and domain
-  lists, and the first versions of the analyses with what changed.
+- **Appendices** hold the reference material: data checks, the pupil table, and the lesson and
+  domain lists.
 
 The report for the school is a slide deck (`report.qmd`, see the README); its figures are
 simplified versions of the ones here. All numbers in the text are computed from the data when the
@@ -40,9 +40,6 @@ source("R/explained_variance.R")
 source("R/cv_models.R")
 source("R/goals.R")
 source("R/conclusions.R")
-source("R/q1_model.R")
-source("R/q1_robustness.R")
-source("R/q2_analysis.R")
 
 # Tables longer than `collapse_after` rows are folded behind a "Show table" toggle
 show_table <- function(x, digits = 3, collapse_after = 15) {
@@ -782,8 +779,8 @@ change, check the wording there against the Conclusion boxes. Each slide and whe
 | Recommendations | Chapter 6, "What the results point to" |
 | Limitations | Chapter 6, "Limitations" |
 
-For the written parts of the assignment, Appendix A and B describe the data and its preparation,
-the "How this was made" notes the methods, and Appendix D what changed since the first draft.
+For the written parts of the assignment, Appendix A and B describe the data and its preparation, and
+the "How this was made" notes the methods.
 
 # Appendix A: Data checks
 
@@ -917,143 +914,4 @@ the share of pupils who reached group 3 with the domain observed, and whether it
 
 ```{r}
 show_table(domain_overview, digits = 2)
-```
-
-# Appendix D: Earlier analyses and what changed
-
-The first versions of Q1 and Q2 (in `Report.docx` and `Analysis Results.docx`) are kept here, with
-the checks that show why the chapters above changed them. Text in the report that is based on them
-needs updating.
-
-## Q1 as first reported: time in kindergarten × extracurricular activities
-
-Development is the average z-score across learning goals per pupil.
-Both predictors are mean-centred, so each main effect is the effect at the average of the other predictor.
-
-::: {.callout-note collapse="true" title="How this table and model were made"}
-**Development.** For every pupil and goal, all observations are averaged; each goal's averages
-are turned into z-scores across pupils; a pupil's development is the mean of their z-scores.
-0 is average, above 0 above average.
-
-**Activities.** Number of distinct lesson names a pupil took in `Extracurricular.xlsx`, over all
-school years. Pupils without any record are missing (not 0) and drop out of the model.
-
-**Kindergarten months.** `kindergarten_months` from `cleanup.R`: months from the start date to
-1 August two school years after the school year of the start, or to today if that is later than
-today. This is not the time until group 3 actually started (see the robustness section).
-
-**Stages.** `data_clean`: pupils in the master list; `with learning-goal scores`: pupils with a
-development score; `complete cases in model`: those with kindergarten months and activities too.
-
-**Model.** Linear regression of development on kindergarten months, activities and their
-product, both predictors centred on their mean.
-:::
-
-```{r}
-show_table(q1_sample_sizes)
-```
-
-```{r}
-summary(m_q1)
-confint(m_q1)
-```
-
-```{r}
-#| fig-width: 8
-#| fig-height: 5
-q1_plot
-```
-
-### Robustness of the activities effect
-
-The model above changes one thing at a time, from the reported specification towards
-pupils who reached group 3, their actual time until group 3, and the transition goals
-achieved before group 3. If the activities coefficient changes sign or disappears at a
-step, that choice is what drives the result. `b_per_sd_outcome` puts the outcomes on one scale.
-
-::: {.callout-note collapse="true" title="How this table was made"}
-Each row refits the regression of the section above with one more change than the row before:
-
-1. The model as reported.
-2. Pupils without an extracurricular record get 0 activities instead of being dropped.
-3. Adds months in school (from the start date to the last observation in the export) as a
-   control, so older and younger pupils are compared at the same time in school.
-4. Keeps only pupils who reached group 3.
-5. Replaces `kindergarten_months` with months until group 3 actually started (as in the
-   kindergarten table in chapter 1).
-6. Replaces development with the share of the 15 goals before group 3 achieved on the last
-   observation before group 3 (as in the goals table in chapter 1).
-
-**Columns.** `n`: pupils in the model; `activities_b`: change in the outcome per extra activity,
-at average kindergarten time; `ci_low`, `ci_high`: 95% confidence interval; `p`: p-value;
-`b_per_sd_outcome`: `activities_b` divided by the outcome's standard deviation, so rows with
-different outcomes can be compared.
-:::
-
-```{r}
-show_table(q1_bridge, digits = 4)
-```
-
-Spearman correlation between transition goals achieved and activities (step 6 sample):
-rho = `r round(q1_bridge_rho$estimate, 2)`, p = `r signif(q1_bridge_rho$p.value, 2)`.
-
-`kindergarten_months` (from `cleanup.R`) counts from the start date to 1 August two
-school years later. For pupils who reached group 3 it can be compared with the months
-until group 3 actually started:
-
-```{r}
-#| fig-width: 7
-#| fig-height: 5
-kg_measures_plot
-```
-
-::: {.callout-tip title="Conclusion"}
-```{r}
-#| output: asis
-#| echo: false
-cat(conclusion_q1_reported())
-```
-:::
-
-## Q2 as first reported
-
-The first Q2 analysis (`R/q2_analysis.R`) predicted group 3 Cito from observation scores per
-subject with the cross-validated elastic net, and picked two subjects per test for simpler
-models. Chapter 5 reuses the same elastic net, with corrected inputs:
-
-- observation scores as the **last score before group 3**, compared with classmates, instead of the
-  average of all observations at any age;
-- **months until group 3 started** instead of `kindergarten_months` (see the robustness section);
-- support **during kindergarten** instead of support records from all years, which included
-  support given after the outcome;
-- the **end-of-group-3 Cito ability score** instead of the average of mid and end scores.
-
-It also originally read only the first Cito sheet (one cohort, 18 pupils per test); that is
-fixed for both analyses.
-
-::: {.callout-note collapse="true" title="Original results (all subjects, elastic net)"}
-```{r}
-show_table(model_status)
-show_table(rmse_results)
-```
-
-```{r}
-#| fig-width: 11
-#| fig-height: 7
-vak_plot
-```
-:::
-
-# Appendix E: Software
-
-The analysis runs in R with the packages below; the exact versions of all packages are recorded in
-`renv.lock` (restore them with `renv::restore()`, see the README).
-
-```{r}
-tibble(
-  software = c("R", "tidyverse", "readxl", "glmnet", "knitr", "rmarkdown"),
-  version = c(paste(R.version$major, R.version$minor, sep = "."),
-              map_chr(c("tidyverse", "readxl", "glmnet", "knitr", "rmarkdown"), ~ as.character(packageVersion(.x))))
-) %>%
-  show_table()
 ```

@@ -50,7 +50,7 @@ which hold the notebook's full conclusion behind each slide.
 | `R/setup.R` | Packages and shared helpers |
 | `R/load_data.R` | Reads the Excel files from `data/` |
 | `R/cleanup.R` | Builds pupil-level tables (learning goals, CITO, interventions, CLASS, time in kindergarten) |
-| `R/q1_model.R` | Q1: kindergarten time × extracurricular activities regression |
-| `R/q2_analysis.R` | Q2: learning goals vs CITO correlations and cross-validated models |
+| `R/q1_model.R`, `R/q1_robustness.R` | First version of Q1 (kindergarten time × extracurricular activities) and its checks; not used in the notebook |
+| `R/q2_analysis.R` | First version of Q2 (learning goals vs CITO); not used in the notebook, chapter 5 reuses its model in `R/cv_models.R` |
 | `analysis.qmd` | Notebook that runs the scripts in order and shows the results |
 | `report.qmd`, `report/` | The report slides: storyline, figures and theme |
